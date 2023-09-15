@@ -58,12 +58,12 @@ def wifi_connect(dog, wlan):
     return True
 
 
-def handle_door_open_state(watchdog, reed_switch_on):
+def handle_door_open_state(watchdog, reed_switch):
     """
     Deal with the situation where the mailbox door has been opened
 
     :param watchdog: A watchdog timer
-    :param reed_switch_on: A reed switch handle
+    :param reed_switch: A reed switch handle
     :return: Nothing
     """
     state_counter = 0
@@ -74,7 +74,7 @@ def handle_door_open_state(watchdog, reed_switch_on):
         time.sleep(1)
         watchdog.feed()
         # If the mailbox door is closed, exit the state timer
-        if reed_switch_on.value():
+        if reed_switch.value():
             print("exiting LOW state")
             break
 
@@ -85,15 +85,15 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     wlan.config(pm=wlan.PM_NONE)  # turn OFF power save mode
     wlan.active(True)
-    reed_switch_on = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
+    reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         print("starting event loop")
         while True:
-            if not reed_switch_on.value():
+            if not reed_switch.value():
                 print("Mailbox door opened!")
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
-                handle_door_open_state(watchdog, reed_switch_on)
+                handle_door_open_state(watchdog, reed_switch)
 
             if not wlan.isconnected():
                 print("restart network connection!")
