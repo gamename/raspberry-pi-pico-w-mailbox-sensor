@@ -58,6 +58,27 @@ def wifi_connect(dog, wlan):
     return True
 
 
+def handle_door_open_state(watchdog, reed_switch_on):
+    """
+    Deal with the situation where the mailbox door has been opened
+
+    :param watchdog: A watchdog timer
+    :param reed_switch_on: A reed switch handle
+    :return: Nothing
+    """
+    state_counter = 0
+    # Set a timer to keep us from re-sending SMS notices
+    while state_counter < DOOR_OPEN_STATE_TIMER:
+        print("in LOW state")
+        state_counter += 1
+        time.sleep(1)
+        watchdog.feed()
+        # If the mailbox door is closed, exit the state timer
+        if reed_switch_on.value():
+            print("exiting LOW state")
+            break
+
+
 def main():
     watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
@@ -72,17 +93,7 @@ def main():
             if not reed_switch_on.value():
                 print("Mailbox door opened!")
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
-                state_counter = 0
-                # Set a timer to keep us from re-sending SMS notices
-                while state_counter < DOOR_OPEN_STATE_TIMER:
-                    print("in LOW state")
-                    state_counter += 1
-                    time.sleep(1)
-                    watchdog.feed()
-                    # If the mailbox door is closed, exit the state timer
-                    if reed_switch_on.value():
-                        print("exiting LOW state")
-                        break
+                handle_door_open_state(watchdog, reed_switch_on)
 
             if not wlan.isconnected():
                 print("restart network connection!")
