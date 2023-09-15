@@ -6,17 +6,17 @@ import boto3
 
 def handler(event, context):
     print(event)
-    # print(context)
+    print(context)
 
     client = boto3.client('sns')
 
     response = client.publish(
         TopicArn=os.environ['SNS_TOPIC_ARN'],
-        Message='Snail mail arrived',
+        Message='Mailbox door opened',
     )
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
-        raise Exception
+        raise RuntimeError
 
     return {
         'statusCode': 200,
