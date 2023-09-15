@@ -41,18 +41,21 @@ def wifi_connect(dog, wlan):
     """
     led = Pin("LED", Pin.OUT)
     led.off()
+    wlan.config(pm=wlan.PM_NONE)  # turn OFF power save mode
+    wlan.active(True)
+    time.sleep(NETWORK_SLEEP_INTERVAL)
     dog.feed()
-    counter = 0
     print("attempting network restart")
+    counter = 0
     while not wlan.isconnected():
-        wlan.connect(secrets.SSID, secrets.PASSWORD)
         print(f'attempt: {counter}')
+        wlan.connect(secrets.SSID, secrets.PASSWORD)
         time.sleep(NETWORK_SLEEP_INTERVAL)
-        dog.feed()
         counter += 1
         if counter > MAX_NETWORK_CONNECTION_ATTEMPTS:
             print("network connection attempts exceeded! Restarting")
             reset()
+        dog.feed()
     led.on()
     print("successfully connected to network!")
     return True
@@ -83,8 +86,6 @@ def main():
     watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
     wlan = network.WLAN(network.STA_IF)
-    wlan.config(pm=wlan.PM_NONE)  # turn OFF power save mode
-    wlan.active(True)
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
