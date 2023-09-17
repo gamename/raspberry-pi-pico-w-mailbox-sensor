@@ -17,7 +17,7 @@ import secrets
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
 # How long to sleep between network connection attempts?
-NETWORK_SLEEP_INTERVAL = 5  # seconds
+NETWORK_SLEEP_INTERVAL = 3  # seconds
 
 # How many times should we try to start the network connection?
 MAX_NETWORK_CONNECTION_ATTEMPTS = 20
@@ -26,7 +26,7 @@ MAX_NETWORK_CONNECTION_ATTEMPTS = 20
 WATCHDOG_TIMEOUT = 8000  # 8 seconds
 
 # Time to wait while the door has been opened
-DOOR_OPEN_STATE_TIMER = 300  # seconds
+DOOR_OPEN_STATE_TIMER = 28800  # seconds (8 hours)
 
 
 def wifi_connect(dog, wlan):
