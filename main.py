@@ -32,7 +32,13 @@ DEFAULT_MINUTES_DELAY = 3
 DELAY_EXPONENT = 3
 
 
-def power_generator(base, exponent):
+def exponent_generator(base, exponent):
+    """
+    Generate powers of a given base value
+    :param base: The base value (e.g. 3)
+    :param exponent: The exponent to which the base is raised (e.g. 10)
+    :return: The next exponent value
+    """
     result = 1
     for _ in range(exponent + 1):
         yield result
@@ -51,7 +57,6 @@ def wifi_connect(dog, wlan):
     """
     led = Pin("LED", Pin.OUT)
     led.off()
-    # wlan.config(pm=wlan.PM_NONE)  # turn OFF power save mode
     wlan.active(True)
     time.sleep(NETWORK_SLEEP_INTERVAL)
     dog.feed()
@@ -103,7 +108,7 @@ def main():
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         print("starting event loop")
-        power_value = power_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
+        power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
         start_time = time.time()
         while True:
             if not reed_switch.value():
@@ -112,7 +117,9 @@ def main():
                 handle_door_open_state(watchdog, reed_switch, next(power_value))
                 elapsed_time = int(time.time() - start_time)
                 if elapsed_time > ONE_DAY:
-                    power_value = power_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
+                    print("restart our daily timer")
+                    power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
+                    start_time = time.time()
 
             if not wlan.isconnected():
                 print("restart network connection!")
