@@ -132,9 +132,11 @@ def main():
                 print("restart network connection!")
                 wifi_connect(watchdog, wlan)
 
+            # first try
+            ota()
+
             watchdog.feed()
 
 
 if __name__ == "__main__":
-    ota()
     main()
