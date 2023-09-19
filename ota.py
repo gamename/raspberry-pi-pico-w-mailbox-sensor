@@ -112,6 +112,5 @@ class OTAUpdater:
         if self.check_for_updates() and self.fetch_latest_code():
             print("OTA: latest code found and fetched")
             self.update_code()
-            self.update_and_reset()
         else:
             print('OTA: No new updates available.')
