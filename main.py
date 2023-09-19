@@ -13,6 +13,7 @@ import urequests as requests
 from machine import Pin, reset, WDT
 
 import secrets
+from ota import OTAUpdater
 
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
@@ -30,6 +31,12 @@ ONE_DAY = 86400  # seconds
 DEFAULT_MINUTES_DELAY = 3
 
 DELAY_EXPONENT = 3
+
+
+def ota():
+    repo_url = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
+    ota_updater = OTAUpdater(secrets.SSID, secrets.PASSWORD, repo_url, "main.py")
+    ota_updater.download_and_install_update_if_available()
 
 
 def exponent_generator(base, exponent):
@@ -129,4 +136,5 @@ def main():
 
 
 if __name__ == "__main__":
+    ota()
     main()
