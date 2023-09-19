@@ -104,7 +104,6 @@ def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
 
 
 def main():
-    # Test updates #2
     watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
     wlan = network.WLAN(network.STA_IF)
@@ -129,10 +128,7 @@ def main():
             if not wlan.isconnected():
                 print("restart network connection!")
                 wifi_connect(watchdog, wlan)
-
-            # 1
             ota_updater.download_and_install_update_if_available()
-
             watchdog.feed()
 
 
