@@ -50,7 +50,7 @@ def wifi_connect(dog, wlan):
     Connect to Wi-Fi
 
     :param dog - a watchdog timer
-    :param wlan - a wifi network handle
+    :param wlan - a Wi-Fi network handle
 
     Returns:
         True when successful, hard reset if not
