@@ -109,7 +109,7 @@ def main():
     network.hostname(secrets.HOSTNAME)
     wlan = network.WLAN(network.STA_IF)
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    ota_updater = OTAUpdater(secrets.SSID, secrets.PASSWORD, OTA_UPDATE_URL, "main.py")
+    ota_updater = OTAUpdater(OTA_UPDATE_URL, "main.py")
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         print("starting event loop")
