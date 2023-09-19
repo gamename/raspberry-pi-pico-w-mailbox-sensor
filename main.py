@@ -32,11 +32,7 @@ DEFAULT_MINUTES_DELAY = 3
 
 DELAY_EXPONENT = 3
 
-
-def ota():
-    repo_url = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
-    ota_updater = OTAUpdater(secrets.SSID, secrets.PASSWORD, repo_url, "main.py")
-    ota_updater.download_and_install_update_if_available()
+OTA_UPDATE_URL = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
 
 
 def exponent_generator(base, exponent):
@@ -108,10 +104,12 @@ def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
 
 
 def main():
+
     watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
     wlan = network.WLAN(network.STA_IF)
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
+    ota_updater = OTAUpdater(secrets.SSID, secrets.PASSWORD, OTA_UPDATE_URL, "main.py")
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         print("starting event loop")
@@ -132,8 +130,8 @@ def main():
                 print("restart network connection!")
                 wifi_connect(watchdog, wlan)
 
-            # second try
-            ota()
+            # 1
+            ota_updater.download_and_install_update_if_available()
 
             watchdog.feed()
 
