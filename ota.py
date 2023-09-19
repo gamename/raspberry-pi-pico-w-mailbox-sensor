@@ -22,6 +22,19 @@ class OTAUpdater:
         self.latest_code = None
         self.latest_version = None
 
+        # get the current version (stored in version.json)
+        if 'version.json' in os.listdir():
+            with open('version.json') as f:
+                self.current_version = json.load(f)['version']
+            print(f"Current device firmware version is '{self.current_version}'")
+
+        else:
+            self.current_version = "0"
+            # save the current version
+            with open('version.json', 'w') as f:
+                json.dump({'version': self.current_version}, f)
+
+
     def process_version_url(self, repo_url, filename):
         """ Convert the file's url to its assoicatied version based on Github's oid management."""
 
@@ -51,8 +64,9 @@ class OTAUpdater:
 
         return status
 
-    def update_no_reset(self):
-        """ Update the code without resetting the device."""
+    def update_code(self):
+        """ Update the code."""
+        print("OTA: Update the code")
 
         # Save the fetched code and update the version file to latest version.
         with open(self.NEW_CODE, 'w') as f:
@@ -61,22 +75,17 @@ class OTAUpdater:
         # update the version in memory
         self.current_version = self.latest_version
 
+        # save the current version
+        with open('version.json', 'w') as f:
+            json.dump({'version': self.current_version}, f)
+
         # free up some memory
         self.latest_code = None
 
         # Overwrite the old code.
         os.rename(self.NEW_CODE, self.filename)
 
-    def update_and_reset(self):
-        """ Update the code and reset the device."""
-
-        print('OTA: Updating device...', end='')
-
-        # Overwrite the old code.
-        os.rename(self.NEW_CODE, self.filename)
-
-        # Restart the device to run the new code.
-        print("OTA: Restarting device... (don't worry about an error message after this")
+        print("OTA: Restarting device...")
         sleep(0.25)
         machine.reset()  # Reset the device to run the new code.
 
@@ -102,7 +111,7 @@ class OTAUpdater:
         """ Check for updates, download and install them."""
         if self.check_for_updates() and self.fetch_latest_code():
             print("OTA: latest code found and fetched")
-            self.update_no_reset()
+            self.update_code()
             self.update_and_reset()
         else:
             print('OTA: No new updates available.')
