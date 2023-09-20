@@ -1,5 +1,7 @@
 """
+This is an Over The Air (OTA) utility to update microcontrollers on a Wi-Fi network.
 
+This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer/ota
 """
 import json
 import os
@@ -13,7 +15,7 @@ import urequests
 # TODO - Support private repos
 
 def convert_to_version_url(repo_url, filename):
-    """ Convert the file's url to its associated version based on Github's oid management."""
+    """ Convert the file's url to its associated version based on GitHub's oid management."""
 
     version_url = repo_url.replace('raw.githubusercontent', 'github')
     version_url = version_url.replace('/master/', '/latest-commit/master/')
@@ -30,10 +32,9 @@ class OTAUpdater:
 
     def __init__(self, repo_url, filename):
         self.filename = filename
-        self.repo_url = repo_url
 
-        self.version_url = convert_to_version_url(repo_url, filename)  # Process the new version url
-        self.firmware_url = repo_url + filename  # Removal of the 'main' branch to allow different sources
+        self.version_url = convert_to_version_url(repo_url, filename)
+        self.firmware_url = repo_url + filename
 
         self.current_version = None
         self.latest_version = None
