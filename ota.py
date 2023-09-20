@@ -83,9 +83,8 @@ class OTAUpdater:
     def updates_available(self) -> bool:
         """ Check if updates are available."""
 
-        print('OTA: Checking for latest version...')
-        headers = {"accept": "application/json"}
-        response = urequests.get(self.version_url, headers=headers)
+        print('OTA: Checking GitHub for newer version')
+        response = urequests.get(self.version_url, headers={"accept": "application/json"})
 
         data = json.loads(response.text)
 
