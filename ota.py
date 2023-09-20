@@ -16,11 +16,9 @@ import urequests
 
 def convert_to_version_url(repo_url, filename):
     """ Convert the file's url to its associated version based on GitHub's oid management."""
-
     version_url = repo_url.replace('raw.githubusercontent', 'github')
     version_url = version_url.replace('/master/', '/latest-commit/master/')
     version_url = version_url + filename
-
     return version_url
 
 
@@ -52,18 +50,14 @@ class OTAUpdater:
     def download_latest_firmware(self) -> bool:
         """ Fetch the latest code from the repo."""
         status = False
-
-        # Fetch the latest code from the repo.
         response = urequests.get(self.firmware_url)
 
         if response.status_code != 200:
             print(f'OTA: Error pulling github code, status: {response.status_code}')
         else:
             print(f'OTA: Fetched latest firmware code: \n{response.text}')
-
             with open(self.NEW_CODE_TEMP_FILE, 'w') as f:
                 f.write(response.text)
-
             status = True
 
         return status
@@ -84,7 +78,7 @@ class OTAUpdater:
 
         print("OTA: Restarting device...")
         sleep(1)
-        machine.reset()  # Reset the device to run the new code.
+        machine.reset()
 
     def updates_available(self) -> bool:
         """ Check if updates are available."""
@@ -97,7 +91,6 @@ class OTAUpdater:
 
         self.latest_version = data['oid']  # Access directly the id managed by GitHub
 
-        # compare versions
         newer_version_available = bool(self.current_version != self.latest_version)
 
         if newer_version_available:
