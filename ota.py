@@ -54,8 +54,9 @@ class OTAUpdater:
 
         # Fetch the latest code from the repo.
         response = urequests.get(self.firmware_url)
+
         if response.status_code != 200:
-            print("OTA: Error pulling github code")
+            print(f'OTA: Error pulling github code, status: {response.status_code}')
         else:
             print(f'OTA: Fetched latest firmware code, status: {response.status_code}, -  {response.text}')
             # Save the fetched code to memory
