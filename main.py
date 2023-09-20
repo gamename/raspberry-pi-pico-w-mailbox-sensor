@@ -28,7 +28,7 @@ ONE_DAY = 86400  # seconds
 # How long should we delay between retries?
 DEFAULT_MINUTES_DELAY = 3
 
-# Raise the delay time to successively longer exponential values
+# Raise the delay time to successively longer exponential values (i.e. a backoff timer)
 DELAY_EXPONENT = 3
 
 # Define where we get our updates when we pull them Over The Air (OTA)
