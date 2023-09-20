@@ -29,7 +29,7 @@ ONE_DAY = 86400  # seconds
 DEFAULT_MINUTES_DELAY = 3
 
 # Raise the delay time to successively longer exponential values (i.e. a backoff timer)
-DELAY_EXPONENT = 3
+DELAY_EXPONENT = 4
 
 # Define where we get our updates when we pull them Over The Air (OTA)
 OTA_UPDATE_URL = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
