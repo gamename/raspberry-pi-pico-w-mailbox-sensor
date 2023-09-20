@@ -22,7 +22,7 @@ def process_version_url(repo_url, filename):
 class OTAUpdater:
     """ This class handles OTA updates. It checks for updates, downloads and installs them."""
 
-    NEW_CODE = 'latest_code.py'
+    NEW_CODE_TEMP_FILE = 'latest_code.py'
     JSON_VERSION_FILE = 'version.json'
 
     def __init__(self, repo_url, filename):
@@ -70,7 +70,7 @@ class OTAUpdater:
         print("OTA: Update the local code")
 
         # Save the fetched code and update the version file to latest version.
-        with open(self.NEW_CODE, 'w') as f:
+        with open(self.NEW_CODE_TEMP_FILE, 'w') as f:
             f.write(self.latest_code)
 
         # update the version in memory
@@ -84,7 +84,7 @@ class OTAUpdater:
         self.latest_code = None
 
         # Overwrite the old code.
-        os.rename(self.NEW_CODE, self.filename)
+        os.rename(self.NEW_CODE_TEMP_FILE, self.filename)
 
         print("OTA: Restarting device...")
         sleep(0.25)
