@@ -138,6 +138,7 @@ def main():
         while True:
             if not reed_switch.value():
                 print("mailbox door opened")
+                watchdog.feed()
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
                 handle_door_open_state(watchdog, reed_switch, next(power_value))
                 elapsed_time = int(time.time() - start_time)
