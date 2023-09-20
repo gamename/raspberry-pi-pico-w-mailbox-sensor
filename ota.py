@@ -100,17 +100,20 @@ class OTAUpdater:
         data = json.loads(response.text)
 
         self.latest_version = data['oid']  # Access directly the id managed by GitHub
-        print(f'OTA: latest version is: {self.latest_version}')
 
         # compare versions
         newer_version_available = bool(self.current_version != self.latest_version)
 
-        print(f'OTA: Newer version available: {newer_version_available}')
+        if newer_version_available:
+            print("Newer version available")
+            print(f'current: {self.current_version}')
+            print(f'latest:  {self.latest_version}')
+        else:
+            print("Current and latest are the same")
+
         return newer_version_available
 
-    def download_and_install_update_if_available(self):
+    def update_firmware(self):
         """ Check for updates, download and install them."""
         if self.updates_available() and self.download_latest_firmware():
             self.update_local_firmware()
-        else:
-            print('OTA: No new updates available.')

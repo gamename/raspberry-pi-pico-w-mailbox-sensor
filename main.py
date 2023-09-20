@@ -26,13 +26,20 @@ MAX_NETWORK_CONNECTION_ATTEMPTS = 20
 # If watchdog is not 'fed' in 8 seconds, initiate a hard reset
 WATCHDOG_TIMEOUT = 8000  # 8 seconds
 
+# Reset our backoff algorithm after a day has elapsed
 ONE_DAY = 86400  # seconds
 
+# How long should we delay between retries?
 DEFAULT_MINUTES_DELAY = 3
 
+# Raise the delay time to successively longer exponential values
 DELAY_EXPONENT = 3
 
+# Define where we get our updates when we pull them Over The Air (OTA)
 OTA_UPDATE_URL = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
+
+# How often should we check for updates Over The Air (OTA)?
+OTA_CHECK_INTERVAL = 120  # seconds
 
 
 def exponent_generator(base, exponent):
@@ -72,6 +79,7 @@ def wifi_connect(dog, wlan):
         counter += 1
         if counter > MAX_NETWORK_CONNECTION_ATTEMPTS:
             print("network connection attempts exceeded! Restarting")
+            time.sleep(0.5)
             reset()
         dog.feed()
     led.on()
@@ -93,30 +101,43 @@ def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
     # Set a timer to keep us from re-sending SMS notices
     print(f'will delay for {delay_seconds} seconds')
     while state_counter < delay_seconds:
-        print("in LOW state")
+        print("in door OPEN state")
         state_counter += 1
         time.sleep(1)
         watchdog.feed()
         # If the mailbox door is closed, exit the state timer
         if reed_switch.value():
-            print("exiting LOW state")
+            print("exiting door OPEN state")
             break
+
+
+def check_network_status(wlan, watchdog):
+    """
+    Check if we are still connected to the network. If not, retry.
+    :param wlan: A network handle
+    :param watchdog: A watchdog handle
+    :return: Nothing
+    """
+    if not wlan.isconnected():
+        print("restart network connection!")
+        wifi_connect(watchdog, wlan)
 
 
 def main():
     watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
     wlan = network.WLAN(network.STA_IF)
-    reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    ota_updater = OTAUpdater(OTA_UPDATE_URL, "main.py")
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
-        print("starting event loop")
+        reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
+        ota_updater = OTAUpdater(OTA_UPDATE_URL, "main.py")
         power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
         start_time = time.time()
+        ota_timer = time.time()
+        print("starting event loop")
         while True:
             if not reed_switch.value():
-                print("Mailbox door opened!")
+                print("mailbox door opened")
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
                 handle_door_open_state(watchdog, reed_switch, next(power_value))
                 elapsed_time = int(time.time() - start_time)
@@ -125,12 +146,14 @@ def main():
                     power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
                     start_time = time.time()
 
-            if not wlan.isconnected():
-                print("restart network connection!")
-                wifi_connect(watchdog, wlan)
-            ota_updater.download_and_install_update_if_available()
-            watchdog.feed()
+            check_network_status(wlan, watchdog)
 
+            if int(time.time() - ota_timer) > OTA_CHECK_INTERVAL:
+                watchdog.feed()
+                ota_updater.update_firmware()
+                ota_timer = time.time()
+
+            watchdog.feed()
 
 if __name__ == "__main__":
     main()
