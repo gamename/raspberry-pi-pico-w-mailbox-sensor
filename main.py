@@ -66,20 +66,20 @@ def wifi_connect(dog, wlan):
     wlan.active(True)
     time.sleep(NETWORK_SLEEP_INTERVAL)
     dog.feed()
-    print("attempting network restart")
+    print("Attempting network restart")
     counter = 0
     wlan.connect(secrets.SSID, secrets.PASSWORD)
     while not wlan.isconnected():
-        print(f'attempt: {counter}')
+        print(f'Attempt: {counter}')
         time.sleep(NETWORK_SLEEP_INTERVAL)
         counter += 1
         if counter > MAX_NETWORK_CONNECTION_ATTEMPTS:
-            print("network connection attempts exceeded! Restarting")
+            print("Network connection attempts exceeded! Restarting")
             time.sleep(0.5)
             reset()
         dog.feed()
     led.on()
-    print("successfully connected to network!")
+    print("Successfully connected to network")
     return True
 
 
@@ -95,15 +95,14 @@ def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
     state_counter = 0
     delay_seconds = delay_minutes * 60
     # Set a timer to keep us from re-sending SMS notices
-    print(f'will delay for {delay_seconds} seconds')
+    print(f'Will delay for {delay_seconds} seconds')
     while state_counter < delay_seconds:
-        print("in door OPEN state")
         state_counter += 1
         time.sleep(1)
         watchdog.feed()
         # If the mailbox door is closed, exit the state timer
         if reed_switch.value():
-            print("exiting door OPEN state")
+            print("Door CLOSED")
             break
 
 
@@ -115,7 +114,7 @@ def check_network_status(wlan, watchdog):
     :return: Nothing
     """
     if not wlan.isconnected():
-        print("restart network connection!")
+        print("Restart network connection")
         wifi_connect(watchdog, wlan)
 
 
@@ -130,16 +129,16 @@ def main():
         power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
         start_time = time.time()
         ota_timer = time.time()
-        print("starting event loop")
+        print("Starting event loop")
         while True:
             if not reed_switch.value():
-                print("mailbox door opened")
+                print("Door OPEN")
                 watchdog.feed()
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
                 handle_door_open_state(watchdog, reed_switch, next(power_value))
                 elapsed_time = int(time.time() - start_time)
                 if elapsed_time > ONE_DAY:
-                    print("restart our daily timer")
+                    print("Restart our daily timer")
                     power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
                     start_time = time.time()
 
