@@ -1,6 +1,4 @@
 """
-
-
 Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO Pin #22/Physical Pin #29
 """
 
