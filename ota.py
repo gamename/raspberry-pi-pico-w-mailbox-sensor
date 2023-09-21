@@ -17,7 +17,7 @@ import urequests
 
 class OTAUpdater:
     NEW_CODE_TEMP_FILE = 'latest_code.py'
-    JSON_VERSION_FILE = 'version.json'
+    VERSION_FILE = 'version.json'
 
     def __init__(self, organization, repository, filename):
         self.filename = filename
@@ -30,13 +30,13 @@ class OTAUpdater:
         self.current_version = None
         self.latest_version = None
 
-        if self.JSON_VERSION_FILE in os.listdir():
-            with open(self.JSON_VERSION_FILE) as f:
+        if self.VERSION_FILE in os.listdir():
+            with open(self.VERSION_FILE) as f:
                 self.current_version = json.load(f)['version']
         else:
             self.current_version = "0"
             # save the current version
-            with open(self.JSON_VERSION_FILE, 'w') as f:
+            with open(self.VERSION_FILE, 'w') as f:
                 json.dump({'version': self.current_version}, f)
 
     def updates_available(self) -> bool:
@@ -76,7 +76,7 @@ class OTAUpdater:
         self.current_version = self.latest_version
 
         # save the current version
-        with open(self.JSON_VERSION_FILE, 'w') as f:
+        with open(self.VERSION_FILE, 'w') as f:
             json.dump({'version': self.current_version}, f)
 
         # Overwrite the old code.
