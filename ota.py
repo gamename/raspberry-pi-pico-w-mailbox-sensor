@@ -59,7 +59,7 @@ class OTAUpdater:
                 f'https://api.github.com/repos/{self.organization}/{self.repository}/git/blobs/{self.latest_version}'
 
             blob_response = urequests.get(blob_url, headers=headers).json()
-            # print(f'OTA: blob: {response}')
+            # print(f'OTA: blob: {blob_response}')
 
             file_content = ubinascii.a2b_base64(blob_response['content'])
             # print(f'OTA: new file content:\n{file_content}')
