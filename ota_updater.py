@@ -9,41 +9,35 @@ from time import sleep
 
 import machine
 import ubinascii
-import urequests
+import urequests as requests
+
+from ota_entry import OTAEntry
+from ota_json import OTAJson
 
 
 # TODO - Support multiple files
 # TODO - Support private repos
 
+
 class OTAUpdater:
     NEW_CODE_TEMP_FILE = 'latest_code.py'
-    VERSION_FILE = 'version.json'
 
-    def __init__(self, organization, repository, filename):
-        self.filename = filename
+    def __init__(self, organization, repository, filenames):
+        self.filenames = filenames
         self.organization = organization
         self.repository = repository
+        self.entries = []
 
-        self.firmware_url = \
-            f'https://api.github.com/repos/{self.organization}/{self.repository}/contents/{self.filename}'
+        for file in filenames:
+            self.entries.append(OTAEntry(organization, repository, file))
 
-        self.current_version = None
-        self.latest_version = None
-
-        if self.VERSION_FILE in os.listdir():
-            with open(self.VERSION_FILE) as f:
-                self.current_version = json.load(f)['version']
-        else:
-            self.current_version = "0"
-            # save the current version
-            with open(self.VERSION_FILE, 'w') as f:
-                json.dump({'version': self.current_version}, f)
+        self.version_file = OTAJson(self.entries)
 
     def updates_available(self) -> bool:
-        print('OTA: Checking GitHub for newer version')
+        print('OTA: Checking GitHub for newer versions')
 
         headers = {'User-Agent': 'Custom user agent'}
-        response = urequests.get(self.firmware_url, headers=headers).json()
+        response = requests.get(self.firmware_url, headers=headers).json()
         # print(f'OTA: response: {response}')
 
         self.latest_version = response['sha']
@@ -58,7 +52,7 @@ class OTAUpdater:
             blob_url = \
                 f'https://api.github.com/repos/{self.organization}/{self.repository}/git/blobs/{self.latest_version}'
 
-            blob_response = urequests.get(blob_url, headers=headers).json()
+            blob_response = requests.get(blob_url, headers=headers).json()
             # print(f'OTA: blob: {blob_response}')
 
             file_content = ubinascii.a2b_base64(blob_response['content'])
