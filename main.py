@@ -28,9 +28,6 @@ ONE_DAY = 86400  # seconds
 # How long should we delay between retries?
 DOOR_OPEN_BACKOFF_DELAY_MINUTES = 3
 
-# Raise the delay time to successively longer exponential values (i.e. a backoff timer)
-DOOR_OPEN_BACKOFF_DELAY_EXPONENT = 4
-
 # Define where we get our updates when we pull them Over The Air (OTA)
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
 OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
@@ -39,17 +36,14 @@ OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
 OTA_CHECK_INTERVAL = 120  # seconds
 
 
-def exponent_generator(base, exponent):
+def exponent_generator(base):
     """
     Generate powers of a given base value
     :param base: The base value (e.g. 3)
-    :param exponent: The exponent to which the base is raised (e.g. 10)
     :return: The next exponent value
     """
-    result = 1
-    for _ in range(exponent + 1):
-        yield result
-        result *= base
+    for i in range(1, 100):
+        yield base ** i
 
 
 def wifi_connect(dog, wlan):
@@ -84,7 +78,7 @@ def wifi_connect(dog, wlan):
     return True
 
 
-def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
+def handle_door_open_state(watchdog, reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened
 
@@ -94,8 +88,8 @@ def handle_door_open_state(watchdog, reed_switch, delay_minutes=3):
     :return: Nothing
     """
     state_counter = 0
-    delay_seconds = delay_minutes * 60
     # Set a timer to keep us from re-sending SMS notices
+    delay_seconds = delay_minutes * 60
     print(f'Will delay for {delay_seconds} seconds')
     while state_counter < delay_seconds:
         state_counter += 1
@@ -127,7 +121,7 @@ def main():
     if wifi_connect(watchdog, wlan):
         reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
         ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, "main.py")
-        exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES, DOOR_OPEN_BACKOFF_DELAY_EXPONENT)
+        exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES)
         start_time = time.time()
         ota_timer = time.time()
         print("Starting event loop")
@@ -140,7 +134,7 @@ def main():
                 elapsed_time = int(time.time() - start_time)
                 if elapsed_time > ONE_DAY:
                     print("Restart our daily timer")
-                    exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES, DOOR_OPEN_BACKOFF_DELAY_EXPONENT)
+                    exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES)
                     start_time = time.time()
 
             check_network_status(wlan, watchdog)
