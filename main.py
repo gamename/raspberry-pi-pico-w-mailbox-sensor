@@ -17,7 +17,7 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 NETWORK_SLEEP_INTERVAL = 3  # seconds
 
 # How many times should we try to start the network connection?
-MAX_NETWORK_CONNECTION_ATTEMPTS = 20
+MAX_NETWORK_CONNECTION_ATTEMPTS = 10
 
 # If watchdog is not 'fed' in 8 seconds, initiate a hard reset
 WATCHDOG_TIMEOUT = 8000  # 8 seconds
@@ -32,7 +32,8 @@ DEFAULT_MINUTES_DELAY = 3
 DELAY_EXPONENT = 4
 
 # Define where we get our updates when we pull them Over The Air (OTA)
-OTA_UPDATE_URL = 'https://raw.githubusercontent.com/gamename/raspberry-pi-pico-w-mailbox-sensor/master/'
+OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
+OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
 
 # How often should we check for updates Over The Air (OTA)?
 OTA_CHECK_INTERVAL = 120  # seconds
@@ -125,7 +126,7 @@ def main():
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-        ota_updater = OTAUpdater(OTA_UPDATE_URL, "main.py")
+        ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, "main.py")
         power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
         start_time = time.time()
         ota_timer = time.time()
