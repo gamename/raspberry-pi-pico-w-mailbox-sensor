@@ -26,10 +26,10 @@ WATCHDOG_TIMEOUT = 8000  # 8 seconds
 ONE_DAY = 86400  # seconds
 
 # How long should we delay between retries?
-BACKOFF_DELAY_MINUTES = 3
+DOOR_OPEN_BACKOFF_DELAY_MINUTES = 3
 
 # Raise the delay time to successively longer exponential values (i.e. a backoff timer)
-BACKOFF_DELAY_EXPONENT = 4
+DOOR_OPEN_BACKOFF_DELAY_EXPONENT = 4
 
 # Define where we get our updates when we pull them Over The Air (OTA)
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
@@ -127,7 +127,7 @@ def main():
     if wifi_connect(watchdog, wlan):
         reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
         ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, "main.py")
-        power_value = exponent_generator(BACKOFF_DELAY_MINUTES, BACKOFF_DELAY_EXPONENT)
+        exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES, DOOR_OPEN_BACKOFF_DELAY_EXPONENT)
         start_time = time.time()
         ota_timer = time.time()
         print("Starting event loop")
@@ -136,16 +136,17 @@ def main():
                 print("Door OPEN")
                 watchdog.feed()
                 requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
-                handle_door_open_state(watchdog, reed_switch, next(power_value))
+                handle_door_open_state(watchdog, reed_switch, next(exponent))
                 elapsed_time = int(time.time() - start_time)
                 if elapsed_time > ONE_DAY:
                     print("Restart our daily timer")
-                    power_value = exponent_generator(BACKOFF_DELAY_MINUTES, BACKOFF_DELAY_EXPONENT)
+                    exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES, DOOR_OPEN_BACKOFF_DELAY_EXPONENT)
                     start_time = time.time()
 
             check_network_status(wlan, watchdog)
 
-            if int(time.time() - ota_timer) > OTA_CHECK_INTERVAL:
+            ota_elapsed = int(time.time() - ota_timer)
+            if ota_elapsed > OTA_CHECK_INTERVAL:
                 watchdog.feed()
                 ota_updater.update_firmware()
                 ota_timer = time.time()
