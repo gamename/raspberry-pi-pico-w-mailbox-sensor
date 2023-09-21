@@ -26,10 +26,10 @@ WATCHDOG_TIMEOUT = 8000  # 8 seconds
 ONE_DAY = 86400  # seconds
 
 # How long should we delay between retries?
-DEFAULT_MINUTES_DELAY = 3
+BACKOFF_DELAY_MINUTES = 3
 
 # Raise the delay time to successively longer exponential values (i.e. a backoff timer)
-DELAY_EXPONENT = 4
+BACKOFF_DELAY_EXPONENT = 4
 
 # Define where we get our updates when we pull them Over The Air (OTA)
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
@@ -127,7 +127,7 @@ def main():
     if wifi_connect(watchdog, wlan):
         reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
         ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, "main.py")
-        power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
+        power_value = exponent_generator(BACKOFF_DELAY_MINUTES, BACKOFF_DELAY_EXPONENT)
         start_time = time.time()
         ota_timer = time.time()
         print("Starting event loop")
@@ -140,7 +140,7 @@ def main():
                 elapsed_time = int(time.time() - start_time)
                 if elapsed_time > ONE_DAY:
                     print("Restart our daily timer")
-                    power_value = exponent_generator(DEFAULT_MINUTES_DELAY, DELAY_EXPONENT)
+                    power_value = exponent_generator(BACKOFF_DELAY_MINUTES, BACKOFF_DELAY_EXPONENT)
                     start_time = time.time()
 
             check_network_status(wlan, watchdog)

@@ -44,7 +44,6 @@ class OTAUpdater:
 
         headers = {'User-Agent': 'Custom user agent'}
         response = urequests.get(self.firmware_url, headers=headers).json()
-
         # print(f'OTA: response: {response}')
 
         self.latest_version = response['sha']
@@ -63,7 +62,7 @@ class OTAUpdater:
             # print(f'OTA: blob: {response}')
 
             file_content = ubinascii.a2b_base64(response['content'])
-            # print(f'new file content:\n{file_content}')
+            # print(f'OTA: new file content:\n{file_content}')
 
             with open(self.NEW_CODE_TEMP_FILE, 'w') as f:
                 f.write(str(file_content, 'utf-8'))
