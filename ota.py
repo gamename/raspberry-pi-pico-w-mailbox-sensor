@@ -58,10 +58,10 @@ class OTAUpdater:
             blob_url = \
                 f'https://api.github.com/repos/{self.organization}/{self.repository}/git/blobs/{self.latest_version}'
 
-            response = urequests.get(blob_url, headers=headers).json()
+            blob_response = urequests.get(blob_url, headers=headers).json()
             # print(f'OTA: blob: {response}')
 
-            file_content = ubinascii.a2b_base64(response['content'])
+            file_content = ubinascii.a2b_base64(blob_response['content'])
             # print(f'OTA: new file content:\n{file_content}')
 
             with open(self.NEW_CODE_TEMP_FILE, 'w') as f:
@@ -70,7 +70,6 @@ class OTAUpdater:
         return newer_version_available
 
     def update_local_firmware(self):
-
         print("OTA: Update the microcontroller")
 
         # update the version in memory
