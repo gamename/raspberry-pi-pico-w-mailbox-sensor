@@ -12,9 +12,6 @@ import ubinascii
 import urequests as requests
 
 
-# TODO - Support private repos
-
-
 class OTAUpdater:
     TEMP_FILE_PREFIX = '__latest__'
     HEADERS = {'User-Agent': 'Custom user agent'}
@@ -29,9 +26,10 @@ class OTAUpdater:
             self.entries.append(OTAEntry(self.org, self.repo, file))
 
         self.db = OTADatabase()
-        self.update_database()
+        self.sync_database()
 
-    def update_database(self):
+    def sync_database(self):
+        # FIXME - should this be in the OTADatabase init?
         if self.db.db_file_exists():
             for entry in self.entries:
                 filename = entry.get_filename()
@@ -44,7 +42,7 @@ class OTAUpdater:
                 self.db.create(entry.to_json())
 
     def update_entries(self):
-        for ndx in enumerate(self.entries):
+        for ndx, _ in enumerate(self.entries):
             self.entries[ndx].update_latest()
 
     def updates_available(self) -> bool:
@@ -108,9 +106,10 @@ class OTAEntry:
 
     def to_json(self):
         return {
-            "file": self.filename,
-            "latest": self.latest,
-            "current": self.current
+            self.filename: {
+                "latest": self.latest,
+                "current": self.current
+            }
         }
 
     def update_latest(self):
@@ -151,17 +150,17 @@ class OTADatabase:
             return None
 
     def write(self, data):
-        print(f'OTAD: data:\n{data}')
+        # print(f'OTAD: write data:\n{data}')
         with open(self.filename, 'w') as file:
             json.dump(data, file)
 
     def create(self, item):
-        filename = item['file']
+        filename = item.keys()
         if not self.entry_exists(filename):
             data = self.read()
             if not data:
-                data = []
-            data.append(item)
+                data = {}
+            data.update(item)
             self.write(data)
         else:
             raise RuntimeError(f'OTAD: Already an entry for {filename} in database')
@@ -170,34 +169,27 @@ class OTADatabase:
         entry_exists = False
         data = self.read()
         if data:
-            for entry in data:
-                if bool(entry['file'] == filename):
+            for key in data.keys():
+                if bool(key == filename):
                     entry_exists = True
                     break
         return entry_exists
 
-    def get_index(self, filename):
-        ndx = None
-        data = self.read()
-        for index, d in enumerate(data):
-            if 'file' in d and d['file'] == filename:
-                return index
-        return ndx
-
     def update(self, new_item):
         filename = new_item['file']
         data = self.read()
+        print(f'OTAD: Before update for file {filename}: \n{data}')
         self.delete(filename)
-        data.append(new_item)
+        data.update(new_item)
         self.write(data)
+        print(f'OTAD: After update for file {filename}: \n{data}')
 
     def delete(self, filename):
         data = self.read()
-        print(f'OTAD: Remove {filename} from\n{data}')
+        print(f'OTAD: Before delete {filename} from\n{data}')
         if self.entry_exists(filename):
-            ndx = self.get_index(filename)
-            del data[ndx]
+            del data[filename]
             self.write(data)
-            print(f'OTAD: data now:\n{data}')
+            print(f'OTAD: After delete {filename} from:\n{data}')
         else:
-            raise RuntimeError(f'OTAD: No entry exists for {filename}')
+            print(f'OTAD: Cannot delete. No entry for {filename} found')
