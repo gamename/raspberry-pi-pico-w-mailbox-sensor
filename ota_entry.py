@@ -38,7 +38,7 @@ class OTAEntry:
 if __name__ == "__main__":
     org = 'gamename'
     repo = 'raspberry-pi-pico-w-mailbox-sensor'
-    files = ['main.py', 'ota.py']
+    files = ['main.py', 'ota_entry.py']
     entries = []
 
     for file in files:

@@ -44,7 +44,7 @@ class OTAUpdater:
                 self.db.create(entry.to_json())
 
     def updates_available(self) -> bool:
-        print('OTA: Checking GitHub for newer versions')
+        print('OTAU: Checking GitHub for newer versions')
         result = False
         for entry in self.entries:
             if entry.newer_version_available():
@@ -53,7 +53,7 @@ class OTAUpdater:
         return result
 
     def update_local_firmware(self):
-        print("OTA: Update the microcontroller")
+        print("OTAU: Update the microcontroller")
 
         for entry in self.entries:
             if entry.newer_version_available():
@@ -64,10 +64,10 @@ class OTAUpdater:
                 blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/{entry.get_latest()}'
 
                 blob_response = requests.get(blob_url, headers=self.HEADERS).json()
-                # print(f'OTA: blob: {blob_response}')
+                # print(f'OTAU: blob: {blob_response}')
 
                 file_content = ubinascii.a2b_base64(blob_response['content'])
-                # print(f'OTA: new file content:\n{file_content}')
+                # print(f'OTAU: new file content:\n{file_content}')
 
                 temp_file = self.TEMP_FILE_PREFIX + entry.get_filename()
                 with open(temp_file, 'w') as f:
@@ -79,7 +79,7 @@ class OTAUpdater:
 
                 self.db.update(entry)
 
-        print("OTA: Restarting device...")
+        print("OTAU: Restarting device...")
         sleep(1)
         machine.reset()
 
