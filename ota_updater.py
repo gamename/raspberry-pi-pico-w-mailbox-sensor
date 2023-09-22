@@ -23,8 +23,8 @@ class OTAUpdater:
 
     def __init__(self, organization, repository, filenames):
         self.filenames = filenames
-        self.organization = organization
-        self.repository = repository
+        self.org = organization
+        self.repo = repository
         self.entries = []
 
         for file in filenames:
@@ -32,18 +32,16 @@ class OTAUpdater:
 
         self.db = OTADatabase()
 
-        data = self.db.read()
-
-        if not data:
-            for entry in self.entries:
-                self.db.create(entry.to_json())
-        else:
+        if self.db.db_file_exists():
             for entry in self.entries:
                 filename = entry.get_filename()
                 if not self.db.entry_exists(filename):
                     self.db.create(entry.to_json())
                 else:
                     self.db.update(entry.to_json())
+        else:
+            for entry in self.entries:
+                self.db.create(entry.to_json())
 
     def updates_available(self) -> bool:
         print('OTA: Checking GitHub for newer versions')
@@ -63,8 +61,7 @@ class OTAUpdater:
                 print(f'current: {entry.get_current()}')
                 print(f'latest:  {entry.get_latest()}')
 
-                blob_url = \
-                    f'https://api.github.com/repos/{self.organization}/{self.repository}/git/blobs/{entry.get_latest()}'
+                blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/{entry.get_latest()}'
 
                 blob_response = requests.get(blob_url, headers=self.HEADERS).json()
                 # print(f'OTA: blob: {blob_response}')

@@ -8,7 +8,7 @@ class OTADatabase:
     def __init__(self):
         self.filename = self.DB_FILE
 
-    def exists(self):
+    def db_file_exists(self):
         return bool(self.DB_FILE in os.listdir())
 
     def read_data(self):
