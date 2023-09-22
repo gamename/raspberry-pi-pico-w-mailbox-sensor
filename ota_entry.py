@@ -21,17 +21,8 @@ class OTAEntry:
     def get_filename(self):
         return self.filename
 
-    def get_url(self):
-        return self.url
-
-    def set_current(self, version):
-        self.current = version
-
     def get_current(self):
         return self.current
-
-    def set_latest(self, version):
-        self.latest = version
 
     def get_latest(self):
         return self.latest
