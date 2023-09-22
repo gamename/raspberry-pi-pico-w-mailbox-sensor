@@ -53,19 +53,19 @@ def wifi_connect(wlan):
     led.off()
     wlan.active(True)
     time.sleep(NETWORK_SLEEP_INTERVAL)
-    print("Attempting network restart")
+    print("WIFI: Attempting network restart")
     counter = 0
     wlan.connect(secrets.SSID, secrets.PASSWORD)
     while not wlan.isconnected():
-        print(f'Attempt: {counter}')
+        print(f'WIFI: Attempt: {counter}')
         time.sleep(NETWORK_SLEEP_INTERVAL)
         counter += 1
         if counter > MAX_NETWORK_CONNECTION_ATTEMPTS:
-            print("Network connection attempts exceeded! Restarting")
+            print("WIFI: Network connection attempts exceeded! Restarting")
             time.sleep(0.5)
             reset()
     led.on()
-    print("Successfully connected to network")
+    print("WIFI: Successfully connected to network")
 
 
 def handle_door_open_state(reed_switch, delay_minutes):
@@ -79,14 +79,14 @@ def handle_door_open_state(reed_switch, delay_minutes):
     """
     requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
     # Set a backoff timer to keep us from re-sending SMS notices
-    print(f'Backoff delay for {delay_minutes} minutes')
+    print(f'DSTATE: `Backoff delay for {delay_minutes} minutes')
     state_counter = 0
     while state_counter < delay_minutes:
         state_counter += 1
         time.sleep(60)
         # If the mailbox door is closed, exit the state timer
         if reed_switch.value():
-            print("Door CLOSED")
+            print("DSTATE: Door CLOSED")
             break
 
 
@@ -100,14 +100,14 @@ def main():
                              ["main.py", "ota.py"])
     exponent = exponent_generator(BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
-    print("Starting event loop")
+    print("MAIN: Starting event loop")
     while True:
         if not reed_switch.value():
-            print("Door OPEN")
+            print("MAIN: Door OPEN")
             handle_door_open_state(reed_switch, next(exponent))
 
         if not wlan.isconnected():
-            print("Restart network connection")
+            print("MAIN: Restart network connection")
             wifi_connect(wlan)
 
         ota_elapsed = int(time.time() - ota_timer)
