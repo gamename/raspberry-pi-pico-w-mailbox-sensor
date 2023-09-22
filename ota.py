@@ -191,18 +191,18 @@ class OTADatabase:
     def update(self, new_item):
         filename = list(new_item)[0]
         data = self.read()
-        print(f'OTAD: Before update for file {filename}: \n{data}')
+        # print(f'OTAD: Before update for file {filename}: \n{data}')
         self.delete(filename)
         data.update(new_item)
         self.write(data)
-        print(f'OTAD: After update for file {filename}: \n{data}')
+        # print(f'OTAD: After update for file {filename}: \n{data}')
 
     def delete(self, filename):
         data = self.read()
-        print(f'OTAD: Before delete {filename} from\n{data}')
+        # print(f'OTAD: Before delete {filename} from\n{data}')
         if self.entry_exists(filename):
             del data[filename]
             self.write(data)
-            print(f'OTAD: After delete {filename} from:\n{data}')
+            # print(f'OTAD: After delete {filename} from:\n{data}')
         else:
             print(f'OTAD: Cannot delete. No entry for {filename} found')
