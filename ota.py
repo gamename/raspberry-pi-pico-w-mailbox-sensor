@@ -46,9 +46,9 @@ class OTAUpdater:
 
         for entry in self.entries:
             if entry.newer_version_available():
-                print("Newer version available")
-                print(f'current: {entry.get_current()}')
-                print(f'latest:  {entry.get_latest()}')
+                print("OTAU: Newer version available")
+                print(f'OTAU: current: {entry.get_current()}')
+                print(f'OTAU: latest:  {entry.get_latest()}')
 
                 blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/{entry.get_latest()}'
 
@@ -65,6 +65,8 @@ class OTAUpdater:
                 entry.set_current_to_latest()
 
                 os.rename(temp_file, entry.get_filename())
+
+                print(f'OTAU: updating entry: {entry}')
 
                 self.db.update(entry)
 
@@ -89,6 +91,10 @@ class OTAVersionEntry:
         # print(f'OTAE: response: {response}')
         self.latest = response['sha']
         self.current = None
+
+    def __str__(self):
+        return (f'OTAVE - filename: {self.filename} org:{self.org} repo:{self.repo} '
+                f'latest: {self.latest} current:{self.current}')
 
     def to_json(self):
         return {
