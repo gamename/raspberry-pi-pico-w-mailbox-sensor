@@ -97,7 +97,7 @@ def main():
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
                              OTA_UPDATE_GITHUB_REPOSITORY,
-                             ["main.py"])
+                             ["main.py", "ota.py"])
     exponent = exponent_generator(BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     print("Starting event loop")
