@@ -92,9 +92,9 @@ class OTAVersionEntry:
         self.latest = response['sha']
         self.current = None
 
-    def __str__(self):
-        return (f'OTAVE - filename: {self.filename} org:{self.org} repo:{self.repo} '
-                f'latest: {self.latest} current:{self.current}')
+    # def __str__(self):
+    #     return (f'OTAVE - filename: {self.filename} org:{self.org} repo:{self.repo} '
+    #             f'latest: {self.latest} current:{self.current}')
 
     def to_json(self):
         return {
