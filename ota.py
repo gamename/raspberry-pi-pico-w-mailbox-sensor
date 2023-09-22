@@ -46,7 +46,8 @@ class OTAUpdater:
 
         for entry in self.entries:
             if entry.newer_version_available():
-                print("OTAU: Newer version available")
+                filename = entry.get_filename()
+                print(f'OTAU: {filename}')
                 print(f'OTAU: current: {entry.get_current()}')
                 print(f'OTAU: latest:  {entry.get_latest()}')
 
@@ -57,8 +58,6 @@ class OTAUpdater:
 
                 file_content = ubinascii.a2b_base64(blob_response['content'])
                 # print(f'OTAU: new file content:\n{file_content}')
-
-                filename = entry.get_filename()
 
                 temp_file = self.TEMP_FILE_PREFIX + filename
                 with open(temp_file, 'w') as f:
