@@ -23,23 +23,9 @@ class OTAUpdater:
         self.entries = []
 
         for file in self.filenames:
-            self.entries.append(OTAEntry(self.org, self.repo, file))
+            self.entries.append(OTAVersionEntry(self.org, self.repo, file))
 
-        self.db = OTADatabase()
-        self.sync_database()
-
-    def sync_database(self):
-        # FIXME - should this be in the OTADatabase init?
-        if self.db.db_file_exists():
-            for entry in self.entries:
-                filename = entry.get_filename()
-                if not self.db.entry_exists(filename):
-                    self.db.create(entry.to_json())
-                else:
-                    self.db.update(entry.to_json())
-        else:
-            for entry in self.entries:
-                self.db.create(entry.to_json())
+        self.db = OTADatabase(self.entries)
 
     def update_entries(self):
         for ndx, _ in enumerate(self.entries):
@@ -91,7 +77,7 @@ class OTAUpdater:
             self.update_local_firmware()
 
 
-class OTAEntry:
+class OTAVersionEntry:
     HEADERS = {'User-Agent': 'Custom user agent'}
 
     def __init__(self, organization, repository, filename):
@@ -102,7 +88,7 @@ class OTAEntry:
         response = requests.get(self.url, headers=self.HEADERS).json()
         # print(f'OTAE: response: {response}')
         self.latest = response['sha']
-        self.current = response['sha']
+        self.current = None
 
     def to_json(self):
         return {
@@ -122,6 +108,9 @@ class OTAEntry:
     def get_current(self):
         return self.current
 
+    def update_current(self, sha):
+        self.current = sha
+
     def get_latest(self):
         return self.latest
 
@@ -135,11 +124,24 @@ class OTAEntry:
 class OTADatabase:
     DB_FILE = 'versions.json'
 
-    def __init__(self):
+    def __init__(self, version_entry_list):
         self.filename = self.DB_FILE
+        self.version_entries = version_entry_list
+        if self.db_file_exists():
+            for version_entry in self.version_entries:
+                filename = version_entry.get_filename()
+                if self.entry_exists(filename):
+                    db_entry = self.get_entry(filename)
+                    version_entry.update_current(db_entry['current'])
+                    self.update(version_entry.to_json())
+                else:
+                    self.create(version_entry.to_json())
+        else:
+            for entry in self.version_entries:
+                self.create(entry.to_json())
 
     def db_file_exists(self):
-        return bool(self.DB_FILE in os.listdir())
+        return bool(self.filename in os.listdir())
 
     def read(self):
         try:
@@ -155,7 +157,7 @@ class OTADatabase:
             json.dump(data, file)
 
     def create(self, item):
-        filename = item.keys()
+        filename = list(item)[0]
         if not self.entry_exists(filename):
             data = self.read()
             if not data:
@@ -175,8 +177,17 @@ class OTADatabase:
                     break
         return entry_exists
 
+    def get_entry(self, filename):
+        retval = None
+        data = self.read()
+        if data:
+            for key in data.keys():
+                if bool(key == filename):
+                    retval = data[key]
+        return retval
+
     def update(self, new_item):
-        filename = new_item['file']
+        filename = list(new_item)[0]
         data = self.read()
         print(f'OTAD: Before update for file {filename}: \n{data}')
         self.delete(filename)
