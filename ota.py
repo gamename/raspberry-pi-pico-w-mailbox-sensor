@@ -58,7 +58,9 @@ class OTAUpdater:
                 file_content = ubinascii.a2b_base64(blob_response['content'])
                 # print(f'OTAU: new file content:\n{file_content}')
 
-                temp_file = self.TEMP_FILE_PREFIX + entry.get_filename()
+                filename = entry.get_filename()
+
+                temp_file = self.TEMP_FILE_PREFIX + filename
                 with open(temp_file, 'w') as f:
                     f.write(str(file_content, 'utf-8'))
 
@@ -66,9 +68,7 @@ class OTAUpdater:
 
                 os.rename(temp_file, entry.get_filename())
 
-                print(f'OTAU: updating entry: {entry}')
-
-                self.db.update(entry)
+                self.db.update(entry.to_json())
 
         print("OTAU: Restarting device...")
         sleep(1)
@@ -91,10 +91,6 @@ class OTAVersionEntry:
         # print(f'OTAE: response: {response}')
         self.latest = response['sha']
         self.current = None
-
-    # def __str__(self):
-    #     return (f'OTAVE - filename: {self.filename} org:{self.org} repo:{self.repo} '
-    #             f'latest: {self.latest} current:{self.current}')
 
     def to_json(self):
         return {
