@@ -116,5 +116,6 @@ def main():
             ota_timer = time.time()
 
 
+# Test 1
 if __name__ == "__main__":
     main()

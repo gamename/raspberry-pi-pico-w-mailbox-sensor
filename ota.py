@@ -138,8 +138,11 @@ class OTADatabase:
             return None
 
     def write_data(self, data):
+        json_data = []
+        for entry in data:
+            json_data.append(entry.to_json())
         with open(self.filename, 'w') as file:
-            json.dump(data, file)
+            json.dump(json_data, file)
 
     def create(self, item):
         filename = item.get_filename()
