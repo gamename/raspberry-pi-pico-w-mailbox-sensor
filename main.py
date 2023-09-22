@@ -9,7 +9,7 @@ import urequests as requests
 from machine import Pin, reset, WDT
 
 import secrets
-from ota_updater import OTAUpdater
+from ota import OTAUpdater
 
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
@@ -120,7 +120,7 @@ def main():
     watchdog.feed()
     if wifi_connect(watchdog, wlan):
         reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-        ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, "main.py")
+        ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION, OTA_UPDATE_GITHUB_REPOSITORY, ["main.py"])
         exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_MINUTES)
         start_time = time.time()
         ota_timer = time.time()
