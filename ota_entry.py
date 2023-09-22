@@ -9,7 +9,7 @@ class OTAEntry:
         self.url = f'https://api.github.com/repos/{organization}/{repository}/contents/{self.filename}'
         response = requests.get(self.url, headers=self.HEADERS).json()
         self.latest = response['sha']
-        self.current = None
+        self.current = response['sha']
 
     def to_json(self):
         return {
@@ -35,6 +35,9 @@ class OTAEntry:
 
     def get_latest(self):
         return self.latest
+
+    def set_current_to_latest(self):
+        self.current = self.latest
 
     def newer_version_available(self):
         return bool(self.current != self.latest)
