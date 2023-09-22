@@ -9,7 +9,7 @@ import urequests as requests
 from machine import Pin, reset, WDT
 
 import secrets
-from ota import OTAUpdater
+from ota_updater import OTAUpdater
 
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
