@@ -27,7 +27,7 @@ OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
 OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
 
 # How often should we check for updates Over The Air (OTA)?
-OTA_CHECK_INTERVAL = 120  # seconds
+OTA_CHECK_INTERVAL = 60  # seconds
 
 
 def exponent_generator(base):

@@ -34,12 +34,12 @@ class OTAUpdater:
             for entry in self.entries:
                 filename = entry.get_filename()
                 if not self.db.entry_exists(filename):
-                    self.db.create(entry)
+                    self.db.create(entry.to_json())
                 else:
-                    self.db.update(entry)
+                    self.db.update(entry.to_json())
         else:
             for entry in self.entries:
-                self.db.create(entry)
+                self.db.create(entry.to_json())
 
     def updates_available(self) -> bool:
         print('OTAU: Checking GitHub for newer versions')
@@ -129,7 +129,7 @@ class OTADatabase:
     def db_file_exists(self):
         return bool(self.DB_FILE in os.listdir())
 
-    def read_data(self):
+    def read(self):
         try:
             with open(self.filename, 'r') as file:
                 data = json.load(file)
@@ -137,57 +137,54 @@ class OTADatabase:
         except OSError:
             return None
 
-    def write_data(self, data):
-        json_data = []
-        for entry in data:
-            json_data.append(entry.to_json())
+    def write(self, data):
+        print(f'OTAD: data:\n{data}')
         with open(self.filename, 'w') as file:
-            json.dump(json_data, file)
+            json.dump(data, file)
 
     def create(self, item):
-        filename = item.get_filename()
+        filename = item['file']
         if not self.entry_exists(filename):
-            data = self.read_data()
+            data = self.read()
             if not data:
                 data = []
             data.append(item)
-            self.write_data(data)
+            self.write(data)
         else:
-            raise RuntimeError(f'Already an entry for {filename} in database')
+            raise RuntimeError(f'OTAD: Already an entry for {filename} in database')
 
     def entry_exists(self, filename):
         entry_exists = False
-        data = self.read_data()
+        data = self.read()
         if data:
             for entry in data:
-                if bool(entry.get_filename() == filename):
+                if bool(entry['file'] == filename):
                     entry_exists = True
                     break
         return entry_exists
 
-    def read(self):
-        return self.read_data()
-
     def get_index(self, filename):
         ndx = None
-        data = self.read_data()
+        data = self.read()
         for index, d in enumerate(data):
             if 'file' in d and d['file'] == filename:
                 return index
         return ndx
 
     def update(self, new_item):
-        filename = new_item.get_filename()
-        data = self.read_data()
+        filename = new_item['file']
+        data = self.read()
         self.delete(filename)
         data.append(new_item)
-        self.write_data(data)
+        self.write(data)
 
     def delete(self, filename):
-        data = self.read_data()
+        data = self.read()
+        print(f'OTAD: Remove {filename} from\n{data}')
         if self.entry_exists(filename):
             ndx = self.get_index(filename)
             del data[ndx]
-            self.write_data(data)
+            self.write(data)
+            print(f'OTAD: data now:\n{data}')
         else:
-            raise RuntimeError(f'No entry exists for {filename}')
+            raise RuntimeError(f'OTAD: No entry exists for {filename}')
