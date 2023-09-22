@@ -93,7 +93,7 @@ class OTAEntry:
         self.filename = filename
         self.url = f'https://api.github.com/repos/{organization}/{repository}/contents/{self.filename}'
         response = requests.get(self.url, headers=self.HEADERS).json()
-        print(f'OTAE: response: {response}')
+        # print(f'OTAE: response: {response}')
         self.latest = response['sha']
         self.current = response['sha']
 
@@ -143,23 +143,23 @@ class OTADatabase:
 
     def create(self, item):
         filename = item.get_filename()
-        if self.entry_exists(filename):
+        if not self.entry_exists(filename):
             data = self.read_data()
+            if not data:
+                data = []
             data.append(item)
             self.write_data(data)
         else:
             raise RuntimeError(f'Already an entry for {filename} in database')
 
     def entry_exists(self, filename):
-        entry_exists = True
+        entry_exists = False
         data = self.read_data()
         if data:
             for entry in data:
                 if bool(entry.get_filename() == filename):
-                    entry_exists = False
+                    entry_exists = True
                     break
-        else:
-            entry_exists = False
         return entry_exists
 
     def read(self):
