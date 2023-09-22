@@ -25,11 +25,13 @@ class OTAUpdater:
         self.repo = repository
         self.entries = []
 
-        for file in filenames:
-            self.entries.append(OTAEntry(organization, repository, file))
+        for file in self.filenames:
+            self.entries.append(OTAEntry(self.org, self.repo, file))
 
         self.db = OTADatabase()
+        self.update_database()
 
+    def update_database(self):
         if self.db.db_file_exists():
             for entry in self.entries:
                 filename = entry.get_filename()
@@ -41,9 +43,14 @@ class OTAUpdater:
             for entry in self.entries:
                 self.db.create(entry.to_json())
 
+    def update_entries(self):
+        for ndx in enumerate(self.entries):
+            self.entries[ndx].update_latest()
+
     def updates_available(self) -> bool:
         print('OTAU: Checking GitHub for newer versions')
         result = False
+        self.update_entries()
         for entry in self.entries:
             if entry.newer_version_available():
                 result = True
@@ -91,7 +98,9 @@ class OTAEntry:
 
     def __init__(self, organization, repository, filename):
         self.filename = filename
-        self.url = f'https://api.github.com/repos/{organization}/{repository}/contents/{self.filename}'
+        self.org = organization
+        self.repo = repository
+        self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
         response = requests.get(self.url, headers=self.HEADERS).json()
         # print(f'OTAE: response: {response}')
         self.latest = response['sha']
@@ -103,6 +112,10 @@ class OTAEntry:
             "latest": self.latest,
             "current": self.current
         }
+
+    def update_latest(self):
+        response = requests.get(self.url, headers=self.HEADERS).json()
+        self.latest = response['sha']
 
     def get_filename(self):
         return self.filename
