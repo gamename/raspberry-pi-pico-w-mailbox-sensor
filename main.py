@@ -99,7 +99,9 @@ def wifi_connect(wlan):
 def door_open_handler(reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened, but may
-    or may not have been closed.
+    or may not have been closed. The dilemma is you want to know if the door
+    is left open, but you don't want to be flooded with messages about it. A
+    backoff timer is implemented to take care of that.
 
     :param reed_switch: A reed switch handle
     :param delay_minutes: how long to delay before we return
@@ -107,12 +109,11 @@ def door_open_handler(reed_switch, delay_minutes):
     """
     print("DSTATE: Door OPEN")
     requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
-    print(f'DSTATE: Wait for {delay_minutes} minutes before rechecking door state')
+    print(f'DSTATE: Wait {delay_minutes} minutes before reposting "door open" again')
     state_counter = 0
     while state_counter < delay_minutes:
         state_counter += 1
         time.sleep(60)
-        # If the mailbox door is closed, exit the state timer
         if reed_switch.value():
             print("DSTATE: Door CLOSED")
             break
@@ -130,15 +131,15 @@ def main():
     ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
                              OTA_UPDATE_GITHUB_REPOSITORY,
                              OTA_UPDATE_GITHUB_FILES)
-    #
-    # Once opened, the mailbox door may not be closed. If that happens,
-    # create exponentially longer periods between checks. This ensures we
-    # do not get a flood of 'door open' SMS messages.
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     print("MAIN: Starting event loop")
     while True:
         if not reed_switch.value():
+            #
+            # Once opened, the mailbox door may not be closed. If that happens,
+            # create exponentially longer periods between door checks. This ensures
+            # we do not get a flood of 'door open' SMS messages.
             door_open_handler(reed_switch, next(exponent))
 
         if not wlan.isconnected():
@@ -147,8 +148,7 @@ def main():
 
         #
         # Only update firmware if the reed switch indicates the mailbox door
-        # is closed. This prevents a flood of 'door open' SMS msgs after the
-        # files update and the system resets.
+        # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
             ota_updater.update_firmware()
