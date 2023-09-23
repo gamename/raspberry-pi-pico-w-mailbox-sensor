@@ -57,6 +57,7 @@ def error_flash():
         led.toggle()
         time.sleep(0.5)
 
+
 def exponent_generator(base):
     """
     Generate powers of a given base value
