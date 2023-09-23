@@ -39,7 +39,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 OTA_UPDATE_GITHUB_FILES = ["main.py", "ota.py"]
 
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 300  # seconds (5 mins)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 300  # seconds (5 minutes)
 
 # What organization/repo do we pull updates from?
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
@@ -73,7 +73,7 @@ def wifi_connect(wlan):
     """
     Connect to Wi-Fi
 
-    :param wlan - a Wi-Fi network handle
+    :param: wlan - a Wi-Fi network handle
 
     Returns:
         Nothing
