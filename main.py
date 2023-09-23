@@ -2,6 +2,7 @@
 Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO Pin #22/Physical Pin #29
 """
 
+import sys
 import time
 
 import network
@@ -44,6 +45,17 @@ OTA_UPDATE_GITHUB_CHECK_INTERVAL = 300  # seconds (5 mins)
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
 OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
 
+
+def error_flash():
+    """
+    Notify of an error via flashing on-board LED
+
+    :return: Nothing
+    """
+    led = Pin("LED", Pin.OUT)
+    for _ in range(1000):
+        led.toggle()
+        time.sleep(0.5)
 
 def exponent_generator(base):
     """
@@ -118,6 +130,10 @@ def main():
     ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
                              OTA_UPDATE_GITHUB_REPOSITORY,
                              OTA_UPDATE_GITHUB_FILES)
+    #
+    # Once opened, the mailbox door may not be closed. If that happens,
+    # create exponentially longer periods between checks. This ensures we
+    # do not get a flood of 'door open' SMS messages.
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     print("MAIN: Starting event loop")
@@ -130,15 +146,18 @@ def main():
             wifi_connect(wlan)
 
         #
-        # Only update firmware if the reed switch is closed. This prevents
-        # a flood of 'door open' SMS msgs after the files update and the
-        # system resets.
+        # Only update firmware if the reed switch indicates the mailbox door
+        # is closed. This prevents a flood of 'door open' SMS msgs after the
+        # files update and the system resets.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
             ota_updater.update_firmware()
             ota_timer = time.time()
 
 
-# Test 1
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        sys.print_exception(exc)
+        error_flash()
