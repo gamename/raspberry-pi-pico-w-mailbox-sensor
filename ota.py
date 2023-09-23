@@ -47,7 +47,7 @@ class OTAUpdater:
         for entry in self.entries:
             if entry.newer_version_available():
                 filename = entry.get_filename()
-                print(f'OTAU: {filename}')
+                print(f'OTAU: {filename} updated')
                 print(f'OTAU: current: {entry.get_current()}')
                 print(f'OTAU: latest:  {entry.get_latest()}')
 
