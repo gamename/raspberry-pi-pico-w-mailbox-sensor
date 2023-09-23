@@ -110,8 +110,10 @@ def main():
             print("MAIN: Restart network connection")
             wifi_connect(wlan)
 
+        # Only update firmware if the reed switch is closed. Prevents
+        # a flood of SMS msgs after the files update and the system resets.
         ota_elapsed = int(time.time() - ota_timer)
-        if ota_elapsed > OTA_CHECK_INTERVAL:
+        if ota_elapsed > OTA_CHECK_INTERVAL and reed_switch.value():
             ota_updater.update_firmware()
             ota_timer = time.time()
 
