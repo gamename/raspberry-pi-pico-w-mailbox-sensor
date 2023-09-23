@@ -86,10 +86,9 @@ class OTAVersionEntry:
         self.org = organization
         self.repo = repository
         self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
-        response = requests.get(self.url, headers=self.HEADERS).json()
-        # print(f'OTAE: response: {response}')
-        self.latest = response['sha']
+        self.latest = None
         self.current = None
+        self.update_latest()
 
     def to_json(self):
         return {
@@ -101,7 +100,10 @@ class OTAVersionEntry:
 
     def update_latest(self):
         response = requests.get(self.url, headers=self.HEADERS).json()
-        self.latest = response['sha']
+        try:
+            self.latest = response['sha']
+        except KeyError:
+            print(response)
 
     def get_filename(self):
         return self.filename
