@@ -31,7 +31,7 @@ MAX_NETWORK_CONNECTION_ATTEMPTS = 10
 # Mailbox door open handling.
 #
 # Generate exponentially longer backoff timers starting with this base value
-DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
+DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
 
 #
 # Over-the-air (OTA) Updates
