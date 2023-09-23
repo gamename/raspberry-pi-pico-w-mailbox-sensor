@@ -61,16 +61,19 @@ def log_traceback(exception):
         f.write(traceback_stream.getvalue())
 
 
-def error_flash():
+def flash_led(count=1000, interval=0.25):
     """
-    Notify of an error via flashing on-board LED
+    Flash on-board LED
+
+    :param: How many times to flash
+    :param: Interval between flashes
 
     :return: Nothing
     """
     led = Pin("LED", Pin.OUT)
-    for _ in range(1000):
+    for _ in range(count):
         led.toggle()
-        time.sleep(0.5)
+        time.sleep(interval)
 
 
 def exponent_generator(base):
@@ -176,5 +179,5 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         log_traceback(exc)
-        error_flash()
+        flash_led()
         reset()
