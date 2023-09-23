@@ -159,8 +159,8 @@ class OTAVersionEntry:
         :type organization: str
         :param repository: The GitHub repository
         :type repository: str
-        :param filenames: A file to monitor and update
-        :type filenames: str
+        :param filename: A file to monitor and update
+        :type filename: str
         """
         self.filename = filename
         self.org = organization
@@ -407,7 +407,7 @@ class OTADatabase:
         """
         Delete a db entry.
 
-        :param filename: A filename to lookup the entry
+        :param filename: A filename to look up the entry
         :type filename: str
         :return: Nothing
         """
