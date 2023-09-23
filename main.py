@@ -6,6 +6,7 @@ import sys
 import time
 
 import network
+import uio
 import urequests as requests
 from machine import Pin, reset
 
@@ -44,6 +45,20 @@ OTA_UPDATE_GITHUB_CHECK_INTERVAL = 300  # seconds (5 minutes)
 # What organization/repo do we pull updates from?
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
 OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
+
+
+def log_traceback(exception):
+    """
+    Keep a log of the latest traceback
+
+    :param exception: An exception intercepted in a try/except statement
+    :type exception: exception
+    :return: Nothing
+    """
+    traceback_stream = uio.StringIO()
+    sys.print_exception(exception, traceback_stream)
+    with open('traceback.txt', 'w') as f:
+        f.write(traceback_stream.getvalue())
 
 
 def error_flash():
@@ -160,5 +175,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        sys.print_exception(exc)
+        log_traceback(exc)
         error_flash()
+        reset()
