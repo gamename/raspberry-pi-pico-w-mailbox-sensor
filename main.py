@@ -2,9 +2,11 @@
 Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO Pin #22/Physical Pin #29
 """
 
+import gc
 import sys
 import time
 
+import micropython
 import network
 import ntptime
 import uio
@@ -170,6 +172,7 @@ def main():
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     print("MAIN: Starting event loop")
+    micropython.mem_info()
     while True:
         if not reed_switch.value():
             #
@@ -188,6 +191,8 @@ def main():
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
             try:
+                gc.collect()
+                micropython.mem_info()
                 if ota_updater.updated():
                     print("MAIN: Restarting device")
                     flash_led(3, 3)
