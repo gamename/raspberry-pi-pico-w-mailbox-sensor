@@ -187,29 +187,19 @@ class OTAVersionEntry:
         """
         Query GitHub for the latest version of our file and update the internal status.
 
-        NOTE: The try/except is here because sometimes it is possible to get a throttling
-        message from GitHub if we sent too many requests too quickly. Our intervals
-        are slow enough that this should NOT happen. But handle it just in case.
+        NOTE:
+        In this request response, it is probable the base64-encoded value for the file
+        content will be included. But that isn't certain since its inclusion is
+        based on the file size (smaller files get included, bigger ones do not).
+        But AFAIK the cutoff for big/small isn't spelled out anywhere, so we
+        cannot be certain we will receive content in the above response. So, we
+        just ignore everything but the 'sha' value here and make another request
+        later on in the OTAUpdater object where we can be certain we get the
+        file content.
 
         :return: Nothing
         """
-        response = requests.get(self.url, headers=self.HEADERS).json()
-        try:
-            self.latest = response['sha']
-            # NOTE:
-            # In this response, it is probable the base64-encoded value for the file
-            # content will be included. But that isn't certain since its inclusion is
-            # based on the file size (smaller files get included, bigger ones do not).
-            # But AFAIK the cutoff for big/small isn't spelled out anywhere, so we
-            # cannot be certain we will receive content in the above response. So, we
-            # just ignore everything but the 'sha' value here and make another request
-            # later on in the OTAUpdater object where we can be certain we get the
-            # file content.
-        except KeyError:
-            print(response)
-
-        # free up some memory
-        response = None
+        self.latest = requests.get(self.url, headers=self.HEADERS).json()['sha']
 
     def get_filename(self):
         """
