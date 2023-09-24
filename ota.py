@@ -151,8 +151,8 @@ class OTAUpdater:
                     f.write(str(file_content, 'utf-8'))
 
                 if valid_code(temp_file):
-                    entry.set_current_to_latest()
                     os.rename(temp_file, entry.get_filename())
+                    entry.set_current_to_latest()
                     self.db.update(entry.to_json())
                     if not retval:
                         retval = True
