@@ -173,7 +173,7 @@ def main():
             try:
                 if ota_updater.updated():
                     print("MAIN: Restarting device")
-                    time.sleep(0.5)
+                    flash_led(10, 3)
                     reset()
             except OTANewFileWillNotValidate as err:
                 print(err.message)
