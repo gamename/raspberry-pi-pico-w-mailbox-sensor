@@ -3,7 +3,7 @@ This is an Over-The-Air (OTA) utility to update microcontrollers on a Wi-Fi netw
 
 
 Tested on:
- 1. Rapberry Pi Pico W - firmware version ?????
+ 1. Rapberry Pi Pico W - firmware v1.20.0 (2023-04-26 vintage)
 
 Limitations:
  1. This can only detect files in a single repo
@@ -207,6 +207,9 @@ class OTAVersionEntry:
             # file content.
         except KeyError:
             print(response)
+
+        # free up some memory
+        response = None
 
     def get_filename(self):
         """
