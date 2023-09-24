@@ -6,7 +6,6 @@ import gc
 import sys
 import time
 
-import micropython
 import network
 import ntptime
 import uio
@@ -41,10 +40,10 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
 # Over-the-air (OTA) Updates
 #
 # Which files will be updated?
-OTA_UPDATE_GITHUB_FILES = ["boot.py", "main.py", "ota.py"]
+OTA_UPDATE_GITHUB_FILES = ["foo.py", "boot.py", "main.py", "ota.py"]
 
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 120  # seconds (4 hours)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
 
 # What organization/repo do we pull updates from?
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
@@ -172,7 +171,7 @@ def main():
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     print("MAIN: Starting event loop")
-    micropython.mem_info()
+    # micropython.mem_info()
     while True:
         if not reed_switch.value():
             #
@@ -191,8 +190,10 @@ def main():
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
             try:
+                # The update process is memory intensive, so make sure
+                # we have all the resources we need.
                 gc.collect()
-                micropython.mem_info()
+                # micropython.mem_info()
                 if ota_updater.updated():
                     print("MAIN: Restarting device")
                     flash_led(3, 3)
