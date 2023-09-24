@@ -12,9 +12,6 @@ import urequests as requests
 import utime
 from machine import Pin, reset
 
-# Synchronize the MicroPython system time to an NTP server
-ntptime.settime()
-
 import secrets
 from ota import OTAUpdater, OTANewFileWillNotValidate
 
