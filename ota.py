@@ -3,7 +3,7 @@ This is an Over-The-Air (OTA) utility to update microcontrollers on a Wi-Fi netw
 
 
 Tested on:
- 1. Rapberry Pi Pico W - firmware v1.20.0 (2023-04-26 vintage)
+ 1. Raspberry Pi Pico W - firmware v1.20.0 (2023-04-26 vintage)
 
 Limitations:
  1. This can only detect files in a single repo
