@@ -33,6 +33,12 @@ def valid_code(file_path) -> bool:
 
 
 class OTANewFileWillNotValidate(Exception):
+    """
+    When we pull a new copy of a file, prior to its use, we validate that
+    the code is at least syntactically correct. This exception is generated
+    when we detect a problem.
+    """
+
     def __init__(self, message="The new file will not validate"):
         self.message = message
         super().__init__(self.message)
@@ -121,7 +127,6 @@ class OTAUpdater:
                     raise OTANewFileWillNotValidate(f'New {filename} will not validate')
 
         return retval
-
 
 
 class OTAVersionEntry:
