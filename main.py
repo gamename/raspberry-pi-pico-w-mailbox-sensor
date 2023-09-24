@@ -6,6 +6,7 @@ import sys
 import time
 
 import network
+import ntptime
 import uio
 import urequests as requests
 import utime
@@ -41,7 +42,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
 OTA_UPDATE_GITHUB_FILES = ["boot.py", "main.py", "ota.py"]
 
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 120  # seconds (4 hours)
 
 # What organization/repo do we pull updates from?
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
@@ -161,6 +162,7 @@ def main():
     # Turn ON and connect the station interface
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan)
+    ntptime.settime()
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
                              OTA_UPDATE_GITHUB_REPOSITORY,
