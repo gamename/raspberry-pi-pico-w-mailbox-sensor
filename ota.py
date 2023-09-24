@@ -95,8 +95,8 @@ class OTAUpdater:
 
         :return: True if something updated, False otherwise
         """
-        print("OTAU: Update the microcontroller")
 
+        print("OTAU: Checking for updates")
         retval = False
 
         self.update_entries()
