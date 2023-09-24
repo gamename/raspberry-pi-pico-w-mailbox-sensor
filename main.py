@@ -41,7 +41,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
 OTA_UPDATE_GITHUB_FILES = ["boot.py", "main.py", "ota.py"]
 
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 120  # seconds (1 hour)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
 
 # What organization/repo do we pull updates from?
 OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
