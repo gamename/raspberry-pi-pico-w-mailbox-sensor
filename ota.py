@@ -10,6 +10,9 @@ import ubinascii
 import urequests as requests
 
 
+# TODO - Add multiple repos as well as multiple files per repo
+# TODO - Add token validation support
+
 def valid_code(file_path) -> bool:
     """
     Verify a file contains reasonably error-free python code. This isn't perfect,
@@ -390,11 +393,9 @@ class OTADatabase:
         """
         filename = list(new_item)[0]
         data = self.read()
-        # print(f'OTAD: Before update for file {filename}: \n{data}')
         self.delete(filename)
         data.update(new_item)
         self.write(data)
-        # print(f'OTAD: After update for file {filename}: \n{data}')
 
     def delete(self, filename):
         """
@@ -405,10 +406,6 @@ class OTADatabase:
         :return: Nothing
         """
         data = self.read()
-        # print(f'OTAD: Before delete {filename} from\n{data}')
         if self.entry_exists(filename):
             del data[filename]
             self.write(data)
-            # print(f'OTAD: After delete {filename} from:\n{data}')
-        else:
-            print(f'OTAD: Cannot delete. No entry for {filename} found')
