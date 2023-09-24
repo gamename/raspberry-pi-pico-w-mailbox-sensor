@@ -6,9 +6,14 @@ import sys
 import time
 
 import network
+import ntptime
 import uio
 import urequests as requests
+import utime
 from machine import Pin, reset
+
+# Synchronize the MicroPython system time to an NTP server
+ntptime.settime()
 
 import secrets
 from ota import OTAUpdater, OTANewFileWillNotValidate
@@ -47,6 +52,18 @@ OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
 OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
 
 
+def current_time_to_string():
+    """
+    Convert the current time to a human-readable string
+
+    :return: timestamp string
+    :rtype: str
+    """
+    current_time = utime.localtime()
+    year, month, day_of_month, hour, minute, second, *_ = current_time
+    return f'{year}-{month}-{day_of_month}-{hour}-{minute}-{second}'
+
+
 def log_traceback(exception):
     """
     Keep a log of the latest traceback
@@ -57,7 +74,8 @@ def log_traceback(exception):
     """
     traceback_stream = uio.StringIO()
     sys.print_exception(exception, traceback_stream)
-    with open('traceback.txt', 'w') as f:
+    traceback_file = current_time_to_string() + '-' + 'traceback.log'
+    with open(traceback_file, 'w') as f:
         f.write(traceback_stream.getvalue())
 
 
@@ -139,6 +157,8 @@ def door_open_handler(reed_switch, delay_minutes):
 
 
 def main():
+    # Synchronize the MicroPython system time to an NTP server
+    ntptime.settime()
     network.hostname(secrets.HOSTNAME)
     # Turn OFF the access point interface
     ap_if = network.WLAN(network.AP_IF)
@@ -178,6 +198,7 @@ def main():
             except OTANewFileWillNotValidate as err:
                 print(err.message)
             ota_timer = time.time()
+
 
 if __name__ == "__main__":
     try:
