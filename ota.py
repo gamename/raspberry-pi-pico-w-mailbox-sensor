@@ -16,7 +16,7 @@ import urequests as requests
 def valid_code(file_path) -> bool:
     """
     Verify a file contains reasonably error-free python code. This isn't perfect,
-    but it will tell you if a file is at least syntactically sound.
+    but it will tell you if a file is at least syntactically correct.
 
     :param file_path: A file path
     :type file_path: str
@@ -271,7 +271,7 @@ class OTADatabase:
     A simple database of files being monitored
 
     Attributes:
-        version_entry_list: A list of OTAVersionEntry objects
+        :param: version_entry_list - A list of OTAVersionEntry objects
     """
     DB_FILE = 'versions.json'
 
