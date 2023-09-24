@@ -12,11 +12,41 @@ Limitations:
 Thank You:
   This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer/ota
 """
+import hashlib
 import json
 import os
 
 import ubinascii
 import urequests as requests
+
+
+def calculate_github_sha(filename):
+    """
+    This will generate the same sha1 value as github's own calculation
+
+    :param filename: The file get our sha value for
+    :type filename: str
+    :return: hex string
+    :rtype: str
+    """
+    s = hashlib.sha1()
+
+    # Open the file in binary mode
+    with open(filename, "rb") as file:
+        chunk_size = 1024
+        data = bytes()
+        while True:
+            chunk = file.read(chunk_size)
+            if not chunk:
+                break
+            data += chunk
+
+    s.update("blob %u\0" % len(data))
+    s.update(data)
+    s_binary = s.digest()
+
+    # Convert the binary digest to a hexadecimal string
+    return ''.join('{:02x}'.format(byte) for byte in s_binary)
 
 
 def valid_code(file_path) -> bool:
@@ -163,7 +193,7 @@ class OTAVersionEntry:
         self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
         self.blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/'
         self.latest = None
-        self.current = None
+        self.current = calculate_github_sha(self.filename)
         self.update_latest()
 
     def to_json(self):
@@ -289,11 +319,7 @@ class OTADatabase:
         if self.db_file_exists():
             for version_entry in self.version_entries:
                 filename = version_entry.get_filename()
-                if self.entry_exists(filename):
-                    db_entry = self.get_entry(filename)
-                    version_entry.update_current(db_entry['current'])
-                    self.update(version_entry.to_json())
-                else:
+                if not self.entry_exists(filename):
                     self.create(version_entry.to_json())
         else:
             for entry in self.version_entries:
