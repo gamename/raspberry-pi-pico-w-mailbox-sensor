@@ -1,7 +1,16 @@
 """
-This is an Over The Air (OTA) utility to update microcontrollers on a Wi-Fi network.
+This is an Over-The-Air (OTA) utility to update microcontrollers on a Wi-Fi network.
 
-This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer/ota
+
+Tested on:
+ 1. Rapberry Pi Pico W - firmware version ?????
+
+Limitations:
+ 1. This can only detect files in a single repo
+ 2. It only works for public repos
+
+Thank You:
+  This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer/ota
 """
 import json
 import os
