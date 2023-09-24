@@ -78,7 +78,7 @@ def log_traceback(exception):
         f.write(traceback_stream.getvalue())
 
 
-def flash_led(count=1000, interval=0.25):
+def flash_led(count=100, interval=0.25):
     """
     Flash on-board LED
 

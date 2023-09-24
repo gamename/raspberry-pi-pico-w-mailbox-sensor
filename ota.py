@@ -19,9 +19,6 @@ import ubinascii
 import urequests as requests
 
 
-# TODO - Add multiple repos as well as multiple files per repo
-# TODO - Add token validation support
-
 def valid_code(file_path) -> bool:
     """
     Verify a file contains reasonably error-free python code. This isn't perfect,
