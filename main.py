@@ -6,7 +6,6 @@ import sys
 import time
 
 import network
-import ntptime
 import uio
 import urequests as requests
 import utime
@@ -154,8 +153,6 @@ def door_open_handler(reed_switch, delay_minutes):
 
 
 def main():
-    # Synchronize the MicroPython system time to an NTP server
-    ntptime.settime()
     network.hostname(secrets.HOSTNAME)
     # Turn OFF the access point interface
     ap_if = network.WLAN(network.AP_IF)
