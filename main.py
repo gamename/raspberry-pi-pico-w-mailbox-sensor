@@ -88,6 +88,7 @@ def flash_led(count=1000, interval=0.25):
     for _ in range(count):
         led.toggle()
         time.sleep(interval)
+    led.off()
 
 
 def exponent_generator(base):
