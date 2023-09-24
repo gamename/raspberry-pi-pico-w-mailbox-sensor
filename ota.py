@@ -5,9 +5,7 @@ This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer
 """
 import json
 import os
-from time import sleep
 
-import machine
 import ubinascii
 import urequests as requests
 
@@ -31,6 +29,12 @@ def valid_code(file_path) -> bool:
         return False  # Code is invalid or file not found
 
 
+class OTANewFileWillNotValidate(Exception):
+    def __init__(self, message="The new file will not validate"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class OTAUpdater:
     """
     This is to update a microcontroller (e.g. Raspberry Pi Pico W) over-the-air (OTA). It does
@@ -42,6 +46,7 @@ class OTAUpdater:
         filenames - A list of file names to be updated
     """
     TEMP_FILE_PREFIX = '__latest__'
+    ERROR_PREFIX = '__error__'
     HEADERS = {'User-Agent': 'Custom user agent'}
 
     def __init__(self, organization, repository, filenames):
@@ -75,30 +80,17 @@ class OTAUpdater:
         for ndx, _ in enumerate(self.entries):
             self.entries[ndx].update_latest()
 
-    def updates_available(self) -> bool:
+    def updated(self) -> bool:
         """
-        Determine if any of the monitored files on GitHub have a newer version available
+        If there are new versions available on GitHub, download them
 
-        :return: True or False
-        :rtype: bool
-        """
-        print('OTAU: Checking GitHub for newer versions')
-        result = False
-        self.update_entries()
-        for entry in self.entries:
-            if entry.newer_version_available():
-                result = True
-                break
-        return result
-
-    def update_local_firmware(self):
-        """
-        If there are new versions available on GitHub, download them and restart the
-        microcontroller.
-
-        :return: Nothing
+        :return: True if something updated, False otherwise
         """
         print("OTAU: Update the microcontroller")
+
+        retval = False
+
+        self.update_entries()
 
         for entry in self.entries:
             if entry.newer_version_available():
@@ -107,13 +99,7 @@ class OTAUpdater:
                 print(f'OTAU: current: {entry.get_current()}')
                 print(f'OTAU: latest:  {entry.get_latest()}')
 
-                blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/{entry.get_latest()}'
-
-                blob_response = requests.get(blob_url, headers=self.HEADERS).json()
-                # print(f'OTAU: blob: {blob_response}')
-
-                file_content = ubinascii.a2b_base64(blob_response['content'])
-                # print(f'OTAU: new file content:\n{file_content}')
+                file_content = entry.get_latest_file_content()
 
                 temp_file = self.TEMP_FILE_PREFIX + filename
                 with open(temp_file, 'w') as f:
@@ -123,21 +109,16 @@ class OTAUpdater:
                     entry.set_current_to_latest()
                     os.rename(temp_file, entry.get_filename())
                     self.db.update(entry.to_json())
+                    if not retval:
+                        retval = True
                 else:
-                    print(f'OTAU: WARNING - New version of {filename} contains invalid code. Ignoring.')
+                    error_file = self.ERROR_PREFIX + filename
+                    # keep a copy for forensics
+                    os.rename(temp_file, error_file)
+                    raise OTANewFileWillNotValidate(f'New {filename} will not validate')
 
-        print("OTAU: Restarting device...")
-        sleep(1)
-        machine.reset()
+        return retval
 
-    def update_firmware(self):
-        """
-        Update the microcontroller if newer versions are available
-
-        :return: Nothing
-        """
-        if self.updates_available():
-            self.update_local_firmware()
 
 
 class OTAVersionEntry:
@@ -166,6 +147,7 @@ class OTAVersionEntry:
         self.org = organization
         self.repo = repository
         self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
+        self.blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/'
         self.latest = None
         self.current = None
         self.update_latest()
@@ -263,6 +245,17 @@ class OTAVersionEntry:
         :rtype: bool
         """
         return bool(self.current != self.latest)
+
+    def get_latest_file_content(self):
+        """
+        Get the actual content of the file
+
+        :return: byte string
+        :rtype: bytearray
+        """
+        latest_blob = self.blob_url + self.get_latest()
+        blob_response = requests.get(latest_blob, headers=self.HEADERS).json()
+        return ubinascii.a2b_base64(blob_response['content'])
 
 
 class OTADatabase:

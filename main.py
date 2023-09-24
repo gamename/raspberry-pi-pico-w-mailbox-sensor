@@ -11,7 +11,7 @@ import urequests as requests
 from machine import Pin, reset
 
 import secrets
-from ota import OTAUpdater
+from ota import OTAUpdater, OTANewFileWillNotValidate
 
 #
 # Reed switch pin to detect mailbox door open
@@ -37,7 +37,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
 # Over-the-air (OTA) Updates
 #
 # Which files will be updated?
-OTA_UPDATE_GITHUB_FILES = ["main.py", "ota.py"]
+OTA_UPDATE_GITHUB_FILES = ["boot.py", "main.py", "ota.py"]
 
 # How often should we check for updates?
 OTA_UPDATE_GITHUB_CHECK_INTERVAL = 300  # seconds (5 minutes)
@@ -170,14 +170,23 @@ def main():
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
-            ota_updater.update_firmware()
+            try:
+                if ota_updater.updated():
+                    print("MAIN: Restarting device")
+                    time.sleep(0.5)
+                    reset()
+            except OTANewFileWillNotValidate as err:
+                print(err.message)
             ota_timer = time.time()
-
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
         log_traceback(exc)
+        # Normally, flashing the LED is a waste of time since the
+        # Pico is in a small closed box under my mailbox. But in
+        # case I have it in a test harness, this is a nice visual
+        # way to let me know something went wrong.
         flash_led()
         reset()
