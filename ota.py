@@ -1,6 +1,11 @@
 """
 This is an Over-The-Air (OTA) utility to update microcontrollers on a Wi-Fi network.
 
+There are 4 classes defined here. They are:
+  1. OTAUpdater - Takes care of updating files to the latest version
+  2. OTAFileMetadata - Metadata for individual files
+  3. OTADatabase - Handles read/write of the file info to a local "database"
+  4. OTANewFileWillNotValidate - Exception for new files that will not validate prior to use
 
 Tested on:
  1. Raspberry Pi Pico W - firmware v1.20.0 (2023-04-26 vintage)
@@ -111,13 +116,13 @@ class OTAUpdater:
         self.entries = []
 
         for file in self.filenames:
-            self.entries.append(OTAVersionEntry(self.org, self.repo, file))
+            self.entries.append(OTAFileMetadata(self.org, self.repo, file))
 
         self.db = OTADatabase(self.entries)
 
     def update_entries(self):
         """
-        Walk through all the OTAVersionEntry objects in a list and update each to
+        Walk through all the OTAFileMetadata objects in a list and update each to
         the latest GitHub version
 
         :return: Nothing
@@ -165,7 +170,7 @@ class OTAUpdater:
         return retval
 
 
-class OTAVersionEntry:
+class OTAFileMetadata:
     """
     This class contains the version metadata for individual files on GitHub.
 
@@ -300,7 +305,7 @@ class OTADatabase:
     A simple database of files being monitored
 
     Attributes:
-        :param: version_entry_list - A list of OTAVersionEntry objects
+        :param: version_entry_list - A list of OTAFileMetadata objects
     """
     DB_FILE = 'versions.json'
 
@@ -309,9 +314,9 @@ class OTADatabase:
         Initializer.
         1. Read the database if it exists
         2. Create the database if it does not exist
-        3. Sync the contents of the database and the OTAVersionEntry objects passed as attributes
+        3. Sync the contents of the database and the OTAFileMetadata objects passed as attributes
 
-        :param version_entry_list: A list of OTAVersionEntry objects
+        :param version_entry_list: A list of OTAFileMetadata objects
         :type version_entry_list: list
         """
         self.filename = self.DB_FILE
