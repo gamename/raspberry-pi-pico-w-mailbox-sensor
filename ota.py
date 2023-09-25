@@ -15,7 +15,7 @@ Limitations:
  2. It only works for public repos
 
 Thank You:
-  This is loosely based on Kevin McAleer's project https://github.com/kevinmcaleer/ota
+  This was inspired by, and loosely based on, Kevin McAleer's project https://github.com/kevinmcaleer/ota
 """
 import hashlib
 import json
