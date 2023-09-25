@@ -11,7 +11,7 @@ import ntptime
 import uio
 import urequests as requests
 import utime
-from machine import Pin, reset
+from machine import Pin, reset, WDT
 
 import secrets
 from ota import OTAUpdater
@@ -20,6 +20,11 @@ from ota import OTAUpdater
 # Reed switch pin to detect mailbox door open
 #
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
+
+#
+# Watchdog. If timeout value is exceeded, system is reset
+#
+WATCHDOG_TIMEOUT = 8000  # milliseconds (8 seconds)
 
 #
 # Network setup
@@ -77,22 +82,6 @@ def log_traceback(exception):
         f.write(traceback_stream.getvalue())
 
 
-def flash_led(count=100, interval=0.25):
-    """
-    Flash on-board LED
-
-    :param: How many times to flash
-    :param: Interval between flashes
-
-    :return: Nothing
-    """
-    led = Pin("LED", Pin.OUT)
-    for _ in range(count):
-        led.toggle()
-        time.sleep(interval)
-    led.off()
-
-
 def exponent_generator(base):
     """
     Generate powers of a given base value
@@ -104,15 +93,17 @@ def exponent_generator(base):
         yield base ** i
 
 
-def wifi_connect(wlan):
+def wifi_connect(watchdog, wlan):
     """
     Connect to Wi-Fi
 
+    :param: watchdog - a watchdog timer
     :param: wlan - a Wi-Fi network handle
 
     Returns:
         Nothing
     """
+    watchdog.feed()
     led = Pin("LED", Pin.OUT)
     led.off()
     print("WIFI: Attempting network connection")
@@ -120,6 +111,7 @@ def wifi_connect(wlan):
     time.sleep(NETWORK_SLEEP_INTERVAL)
     counter = 0
     wlan.connect(secrets.SSID, secrets.PASSWORD)
+    watchdog.feed()
     while not wlan.isconnected():
         print(f'WIFI: Attempt: {counter}')
         time.sleep(NETWORK_SLEEP_INTERVAL)
@@ -128,38 +120,51 @@ def wifi_connect(wlan):
             print("WIFI: Network connection attempts exceeded. Restarting")
             time.sleep(0.5)
             reset()
+        watchdog.feed()
     led.on()
     print("WIFI: Successfully connected to network")
 
 
-def door_recheck_handler(reed_switch, delay_minutes):
+def door_recheck_delay(watchdog, reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened, but may
-    or may not have been closed. The dilemma is you want to know if the door
-    is left open, but you don't want to be flooded with messages about it.
+    not have been closed. The dilemma is you want to know if the door is left
+    open, but you don't want lots of texts about it. This routine slows down
+    the rate of notifications.
 
+    :param watchdog: prevent system hangs
     :param reed_switch: A reed switch handle
     :param delay_minutes: how long to delay before we return
     :return: Nothing
     """
-    print(f'DSTATE: Wait {delay_minutes} minutes before rechecking door status')
+    watchdog.feed()
+    print(f'DSTATE: Delay {delay_minutes} minutes before rechecking door status')
     state_counter = 0
-    while state_counter < delay_minutes:
+    delay_seconds = delay_minutes * 60
+    while state_counter < delay_seconds:
         state_counter += 1
-        time.sleep(60)
+        time.sleep(1)
         if reed_switch.value():
             print("DSTATE: Door CLOSED")
             break
+        watchdog.feed()
 
 
 def main():
+    #
+    # Set up a timer to force reboot on system hang
+    watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
+    #
     # Turn OFF the access point interface
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
+    #
     # Turn ON and connect the station interface
     wlan = network.WLAN(network.STA_IF)
-    wifi_connect(wlan)
+    wifi_connect(watchdog, wlan)
+    #
+    # Sync system time with NTP
     ntptime.settime()
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
@@ -167,42 +172,48 @@ def main():
                              OTA_UPDATE_GITHUB_FILES)
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
+    watchdog.feed()
     print("MAIN: Starting event loop")
     # micropython.mem_info()
     while True:
-        if not reed_switch.value():
+        mailbox_door_is_closed = reed_switch.value()
+
+        if not mailbox_door_is_closed:
             print("MAIN: Door OPEN")
             #
-            # Trigger a text message to the user
+            # Trigger a 'door open' text message
             requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
             #
             # Once opened, the mailbox door may not be closed. If that happens,
             # create exponentially longer periods between door checks. This ensures
             # we do not get a flood of 'door open' SMS messages.
-            door_recheck_handler(reed_switch, next(exponent))
+            door_recheck_delay(watchdog, reed_switch, next(exponent))
 
         if not wlan.isconnected():
             print("MAIN: Restart network connection")
-            wifi_connect(wlan)
+            wifi_connect(watchdog, wlan)
 
         #
         # Only update firmware if the reed switch indicates the mailbox door
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
-        if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
+        if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and mailbox_door_is_closed:
             #
             # The update process is memory intensive, so make sure
             # we have all the resources we need.
             gc.collect()
             # micropython.mem_info()
             if ota_updater.updated():
-                print("MAIN: Restarting device")
-                flash_led(3, 3)
+                print("MAIN: Restarting device after update")
+                time.sleep(1)  # Gives the system time to print the above msg
                 reset()
             ota_timer = time.time()
 
+        watchdog.feed()
+
 
 if __name__ == "__main__":
+
     try:
         main()
     except Exception as exc:
@@ -212,5 +223,7 @@ if __name__ == "__main__":
         # Pico is in a small closed box under my mailbox. But in
         # case I have it in a test harness, this is a nice visual
         # way to let me know something went wrong.
-        flash_led()
+        led = Pin("LED", Pin.OUT)
+        led.toggle()
+        led.toggle()
         reset()
