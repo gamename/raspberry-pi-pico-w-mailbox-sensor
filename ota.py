@@ -20,6 +20,7 @@ Thank You:
 import hashlib
 import json
 import os
+import time
 
 import ubinascii
 import urequests as requests
@@ -153,6 +154,8 @@ class OTAUpdater:
                     if not retval:
                         retval = True
 
+        if retval:
+            time.sleep(1)  # Gives system time to print above output
         return retval
 
 
@@ -210,18 +213,23 @@ class OTAFileMetadata:
         :return: Nothing
         """
         response = requests.get(self.url, headers=self.HEADERS).json()
-        self.latest = response['sha']
-        if self.new_version_available():
-            file_content = ubinascii.a2b_base64(response['content'])
-            self.latest_file = self.LATEST_FILE_PREFIX + self.get_filename()
-            with open(self.latest_file, 'w') as f:
-                f.write(str(file_content, 'utf-8'))
-            if not valid_code(self.latest_file):
-                error_file = self.ERROR_FILE_PREFIX + self.get_filename()
-                # keep a copy for forensics
-                os.rename(self.latest_file, error_file)
-                self.latest_file = None
-                raise OTANewFileWillNotValidate(f'New {self.get_filename()} will not validate')
+        if 'sha' in response:
+            self.latest = response['sha']
+            if self.new_version_available():
+                file_content = ubinascii.a2b_base64(response['content'])
+                self.latest_file = self.LATEST_FILE_PREFIX + self.get_filename()
+                with open(self.latest_file, 'w') as f:
+                    f.write(str(file_content, 'utf-8'))
+                if not valid_code(self.latest_file):
+                    error_file = self.ERROR_FILE_PREFIX + self.get_filename()
+                    # keep a copy for forensics
+                    os.rename(self.latest_file, error_file)
+                    self.latest_file = None
+                    raise OTANewFileWillNotValidate(f'New {self.get_filename()} will not validate')
+        else:
+            print(response)
+            time.sleep(1)
+
 
     def get_filename(self):
         """

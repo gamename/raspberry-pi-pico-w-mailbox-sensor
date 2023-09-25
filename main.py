@@ -93,7 +93,7 @@ def exponent_generator(base):
         yield base ** i
 
 
-def wifi_connect(watchdog, wlan):
+def wifi_connect(wlan):
     """
     Connect to Wi-Fi
 
@@ -103,7 +103,6 @@ def wifi_connect(watchdog, wlan):
     Returns:
         Nothing
     """
-    watchdog.feed()
     led = Pin("LED", Pin.OUT)
     led.off()
     print("WIFI: Attempting network connection")
@@ -111,7 +110,6 @@ def wifi_connect(watchdog, wlan):
     time.sleep(NETWORK_SLEEP_INTERVAL)
     counter = 0
     wlan.connect(secrets.SSID, secrets.PASSWORD)
-    watchdog.feed()
     while not wlan.isconnected():
         print(f'WIFI: Attempt: {counter}')
         time.sleep(NETWORK_SLEEP_INTERVAL)
@@ -120,7 +118,6 @@ def wifi_connect(watchdog, wlan):
             print("WIFI: Network connection attempts exceeded. Restarting")
             time.sleep(0.5)
             reset()
-        watchdog.feed()
     led.on()
     print("WIFI: Successfully connected to network")
 
@@ -153,7 +150,6 @@ def door_recheck_delay(watchdog, reed_switch, delay_minutes):
 def main():
     #
     # Set up a timer to force reboot on system hang
-    watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     network.hostname(secrets.HOSTNAME)
     #
     # Turn OFF the access point interface
@@ -162,7 +158,7 @@ def main():
     #
     # Turn ON and connect the station interface
     wlan = network.WLAN(network.STA_IF)
-    wifi_connect(watchdog, wlan)
+    wifi_connect(wlan)
     #
     # Sync system time with NTP
     ntptime.settime()
@@ -172,9 +168,9 @@ def main():
                              OTA_UPDATE_GITHUB_FILES)
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
-    watchdog.feed()
-    print("MAIN: Starting event loop")
     # micropython.mem_info()
+    watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
+    print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
@@ -190,14 +186,16 @@ def main():
             door_recheck_delay(watchdog, reed_switch, next(exponent))
 
         if not wlan.isconnected():
+            watchdog.feed()
             print("MAIN: Restart network connection")
-            wifi_connect(watchdog, wlan)
+            wifi_connect(wlan)
 
         #
         # Only update firmware if the reed switch indicates the mailbox door
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and mailbox_door_is_closed:
+            watchdog.feed()
             #
             # The update process is memory intensive, so make sure
             # we have all the resources we need.
@@ -224,6 +222,5 @@ if __name__ == "__main__":
         # case I have it in a test harness, this is a nice visual
         # way to let me know something went wrong.
         led = Pin("LED", Pin.OUT)
-        led.toggle()
         led.toggle()
         reset()
