@@ -11,7 +11,7 @@ import ntptime
 import uio
 import urequests as requests
 import utime
-from machine import Pin, reset, WDT
+from machine import Pin, reset
 
 import secrets
 from ota import OTAUpdater
@@ -82,6 +82,22 @@ def log_traceback(exception):
         f.write(traceback_stream.getvalue())
 
 
+def flash_led(count=100, interval=0.25):
+    """
+    Flash on-board LED
+
+    :param: How many times to flash
+    :param: Interval between flashes
+
+    :return: Nothing
+    """
+    led = Pin("LED", Pin.OUT)
+    for _ in range(count):
+        led.toggle()
+        time.sleep(interval)
+    led.off()
+
+
 def exponent_generator(base):
     """
     Generate powers of a given base value
@@ -122,29 +138,25 @@ def wifi_connect(wlan):
     print("WIFI: Successfully connected to network")
 
 
-def door_recheck_delay(watchdog, reed_switch, delay_minutes):
+def door_recheck_delay(reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened, but may
     not have been closed. The dilemma is you want to know if the door is left
     open, but you don't want lots of texts about it. This routine slows down
     the rate of notifications.
 
-    :param watchdog: prevent system hangs
     :param reed_switch: A reed switch handle
     :param delay_minutes: how long to delay before we return
     :return: Nothing
     """
-    watchdog.feed()
     print(f'DSTATE: Delay {delay_minutes} minutes before rechecking door status')
     state_counter = 0
-    delay_seconds = delay_minutes * 60
-    while state_counter < delay_seconds:
+    while state_counter < delay_minutes:
         state_counter += 1
-        time.sleep(1)
+        time.sleep(60)
         if reed_switch.value():
             print("DSTATE: Door CLOSED")
             break
-        watchdog.feed()
 
 
 def main():
@@ -169,7 +181,6 @@ def main():
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     # micropython.mem_info()
-    watchdog = WDT(timeout=WATCHDOG_TIMEOUT)
     print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
@@ -183,10 +194,9 @@ def main():
             # Once opened, the mailbox door may not be closed. If that happens,
             # create exponentially longer periods between door checks. This ensures
             # we do not get a flood of 'door open' SMS messages.
-            door_recheck_delay(watchdog, reed_switch, next(exponent))
+            door_recheck_delay(reed_switch, next(exponent))
 
         if not wlan.isconnected():
-            watchdog.feed()
             print("MAIN: Restart network connection")
             wifi_connect(wlan)
 
@@ -195,7 +205,6 @@ def main():
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and mailbox_door_is_closed:
-            watchdog.feed()
             #
             # The update process is memory intensive, so make sure
             # we have all the resources we need.
@@ -206,8 +215,6 @@ def main():
                 time.sleep(1)  # Gives the system time to print the above msg
                 reset()
             ota_timer = time.time()
-
-        watchdog.feed()
 
 
 if __name__ == "__main__":
@@ -221,6 +228,5 @@ if __name__ == "__main__":
         # Pico is in a small closed box under my mailbox. But in
         # case I have it in a test harness, this is a nice visual
         # way to let me know something went wrong.
-        led = Pin("LED", Pin.OUT)
-        led.toggle()
+        flash_led()
         reset()
