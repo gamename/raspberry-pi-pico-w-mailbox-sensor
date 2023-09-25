@@ -132,20 +132,17 @@ def wifi_connect(wlan):
     print("WIFI: Successfully connected to network")
 
 
-def door_open_handler(reed_switch, delay_minutes):
+def door_recheck_handler(reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened, but may
     or may not have been closed. The dilemma is you want to know if the door
-    is left open, but you don't want to be flooded with messages about it. A
-    backoff timer is implemented to take care of that.
+    is left open, but you don't want to be flooded with messages about it.
 
     :param reed_switch: A reed switch handle
     :param delay_minutes: how long to delay before we return
     :return: Nothing
     """
-    print("DSTATE: Door OPEN")
-    requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
-    print(f'DSTATE: Wait {delay_minutes} minutes before reposting "door open" again')
+    print(f'DSTATE: Wait {delay_minutes} minutes before rechecking door status')
     state_counter = 0
     while state_counter < delay_minutes:
         state_counter += 1
@@ -174,11 +171,15 @@ def main():
     # micropython.mem_info()
     while True:
         if not reed_switch.value():
+            print("MAIN: Door OPEN")
+            #
+            # Trigger a text message to the user
+            requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
             #
             # Once opened, the mailbox door may not be closed. If that happens,
             # create exponentially longer periods between door checks. This ensures
             # we do not get a flood of 'door open' SMS messages.
-            door_open_handler(reed_switch, next(exponent))
+            door_recheck_handler(reed_switch, next(exponent))
 
         if not wlan.isconnected():
             print("MAIN: Restart network connection")
@@ -189,6 +190,7 @@ def main():
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
+            #
             # The update process is memory intensive, so make sure
             # we have all the resources we need.
             gc.collect()
@@ -205,6 +207,7 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         log_traceback(exc)
+        #
         # Normally, flashing the LED is a waste of time since the
         # Pico is in a small closed box under my mailbox. But in
         # case I have it in a test harness, this is a nice visual
