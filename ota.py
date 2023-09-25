@@ -95,8 +95,6 @@ class OTAUpdater:
         repository - The GitHub repository name
         filenames - A list of file names to be updated
     """
-    TEMP_FILE_PREFIX = '__latest__'
-    ERROR_PREFIX = '__error__'
     HEADERS = {'User-Agent': 'Custom user agent'}
 
     def __init__(self, organization, repository, filenames):
@@ -136,36 +134,24 @@ class OTAUpdater:
 
         :return: True if something updated, False otherwise
         """
-
         print("OTAU: Checking for updates")
         retval = False
 
-        self.update_entries()
-
-        for entry in self.entries:
-            if entry.newer_version_available():
-                filename = entry.get_filename()
-                print(f'OTAU: {filename} updated')
-                print(f'OTAU: current: {entry.get_current()}')
-                print(f'OTAU: latest:  {entry.get_latest()}')
-
-                file_content = entry.get_latest_file_content()
-
-                temp_file = self.TEMP_FILE_PREFIX + filename
-                with open(temp_file, 'w') as f:
-                    f.write(str(file_content, 'utf-8'))
-
-                if valid_code(temp_file):
-                    os.rename(temp_file, entry.get_filename())
+        try:
+            self.update_entries()
+        except OTANewFileWillNotValidate:
+            print("OTAU: Validation error. Cannot update")
+        else:
+            for entry in self.entries:
+                if entry.new_version_available():
+                    filename = entry.get_filename()
+                    print(f'OTAU: {filename} updated')
+                    print(f'OTAU: current: {entry.get_current()}')
+                    print(f'OTAU: latest:  {entry.get_latest()}')
                     entry.set_current_to_latest()
                     self.db.update(entry.to_json())
                     if not retval:
                         retval = True
-                else:
-                    error_file = self.ERROR_PREFIX + filename
-                    # keep a copy for forensics
-                    os.rename(temp_file, error_file)
-                    raise OTANewFileWillNotValidate(f'New {filename} will not validate')
 
         return retval
 
@@ -180,6 +166,8 @@ class OTAFileMetadata:
         filename - A single file name to be monitored
     """
     HEADERS = {'User-Agent': 'Custom user agent'}
+    LATEST_FILE_PREFIX = '__latest__'
+    ERROR_FILE_PREFIX = '__error__'
 
     def __init__(self, organization, repository, filename):
         """
@@ -193,10 +181,10 @@ class OTAFileMetadata:
         :type filename: str
         """
         self.filename = filename
+        self.latest_file = None
         self.org = organization
         self.repo = repository
         self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
-        self.blob_url = f'https://api.github.com/repos/{self.org}/{self.repo}/git/blobs/'
         self.latest = None
         self.current = calculate_github_sha(self.filename)
         self.update_latest()
@@ -217,21 +205,23 @@ class OTAFileMetadata:
 
     def update_latest(self):
         """
-        Query GitHub for the latest version of our file and update the internal status.
-
-        NOTE:
-        In this request response, it is probable the base64-encoded value for the file
-        content will be included. But that isn't certain since its inclusion is
-        based on the file size (smaller files get included, bigger ones do not).
-        But AFAIK the cutoff for big/small isn't spelled out anywhere, so we
-        cannot be certain we will receive content in the above response. So, we
-        just ignore everything but the 'sha' value here and make another request
-        later on in the OTAUpdater object where we can be certain we get the
-        file content.
+        Query GitHub for the latest version of our file
 
         :return: Nothing
         """
-        self.latest = requests.get(self.url, headers=self.HEADERS).json()['sha']
+        response = requests.get(self.url, headers=self.HEADERS).json()
+        self.latest = response['sha']
+        if self.new_version_available():
+            file_content = ubinascii.a2b_base64(response['content'])
+            self.latest_file = self.LATEST_FILE_PREFIX + self.get_filename()
+            with open(self.latest_file, 'w') as f:
+                f.write(str(file_content, 'utf-8'))
+            if not valid_code(self.latest_file):
+                error_file = self.ERROR_FILE_PREFIX + self.get_filename()
+                # keep a copy for forensics
+                os.rename(self.latest_file, error_file)
+                self.latest_file = None
+                raise OTANewFileWillNotValidate(f'New {self.get_filename()} will not validate')
 
     def get_filename(self):
         """
@@ -251,16 +241,6 @@ class OTAFileMetadata:
         """
         return self.current
 
-    def update_current(self, sha):
-        """
-        Update the current value
-
-        :param sha: The sha value taken originally from a GitHub query
-        :type sha: str
-        :return: Nothing
-        """
-        self.current = sha
-
     def get_latest(self):
         """
         Get the latest sha value for this file taken from GitHub
@@ -276,9 +256,10 @@ class OTAFileMetadata:
 
         :return: Nothing
         """
+        os.rename(self.latest_file, self.get_filename())
         self.current = self.latest
 
-    def newer_version_available(self):
+    def new_version_available(self):
         """
         Determine if there is a newer version available by comparing the current/latest
         sha values.
@@ -287,17 +268,6 @@ class OTAFileMetadata:
         :rtype: bool
         """
         return bool(self.current != self.latest)
-
-    def get_latest_file_content(self):
-        """
-        Get the actual content of the file
-
-        :return: byte string
-        :rtype: bytearray
-        """
-        latest_blob = self.blob_url + self.get_latest()
-        blob_response = requests.get(latest_blob, headers=self.HEADERS).json()
-        return ubinascii.a2b_base64(blob_response['content'])
 
 
 class OTADatabase:
