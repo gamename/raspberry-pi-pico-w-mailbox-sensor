@@ -28,7 +28,7 @@ import urequests as requests
 
 def calculate_github_sha(filename):
     """
-    This will generate the same sha1 value as github's own calculation
+    This will generate the same sha1 value as GitHub's own calculation
 
     :param filename: The file get our sha value for
     :type filename: str
@@ -94,40 +94,39 @@ class OTAUpdater:
     Attributes:
         organization - The GitHub repository organization name
         repository - The GitHub repository name
-        filenames - A list of file names to be updated
+        repo_dct - A dictionary of repositories and their files to be updated
     """
-    HEADERS = {'User-Agent': 'Custom user agent'}
 
-    def __init__(self, organization, repository, filenames):
+    def __init__(self, github_userid, github_token, repo_dct):
         """
         Initializer
 
-        :param organization: The GitHub organization
-        :type organization: str
-        :param repository: The GitHub repository
-        :type repository: str
-        :param filenames: A list of files to monitor and update
-        :type filenames: list
+        :param github_userid: The GitHub user id 
+        :type github_userid: str
+        :param github_token: The GitHub user token 
+        :type github_token: str
+        :param repo_dct: A dictionary of repos and their files 
+        :type repo_dct: dict
         """
-        self.filenames = filenames
-        self.org = organization
-        self.repo = repository
-        self.entries = []
+        self.files_obj = []
 
-        for file in self.filenames:
-            self.entries.append(OTAFileMetadata(self.org, self.repo, file))
+        for repo in repo_dct.keys():
+            # print(repo)
+            for file in repo_dct[repo]:
+                # print(file)
+                self.files_obj.append(OTAFileMetadata(github_userid, github_token, repo, file))
 
-        self.db = OTADatabase(self.entries)
+        self.db = OTADatabase(self.files_obj)
 
-    def update_entries(self):
+    def fetch_updates(self):
         """
         Walk through all the OTAFileMetadata objects in a list and update each to
         the latest GitHub version
 
         :return: Nothing
         """
-        for ndx, _ in enumerate(self.entries):
-            self.entries[ndx].update_latest()
+        for ndx, _ in enumerate(self.files_obj):
+            self.files_obj[ndx].update_latest()
 
     def updated(self) -> bool:
         """
@@ -139,11 +138,11 @@ class OTAUpdater:
         retval = False
 
         try:
-            self.update_entries()
+            self.fetch_updates()
         except OTANewFileWillNotValidate:
             print("OTAU: Validation error. Cannot update")
         else:
-            for entry in self.entries:
+            for entry in self.files_obj:
                 if entry.new_version_available():
                     filename = entry.get_filename()
                     print(f'OTAU: {filename} updated')
@@ -168,28 +167,27 @@ class OTAFileMetadata:
         repository - The GitHub repository name
         filename - A single file name to be monitored
     """
-    HEADERS = {'User-Agent': 'Custom user agent'}
     LATEST_FILE_PREFIX = '__latest__'
     ERROR_FILE_PREFIX = '__error__'
 
-    def __init__(self, organization, repository, filename):
+    def __init__(self, user, token, repository, filename):
         """
         Initializer
 
-        :param organization: The GitHub organization
-        :type organization: str
         :param repository: The GitHub repository
         :type repository: str
         :param filename: A file to monitor and update
         :type filename: str
         """
         self.filename = filename
-        self.latest_file = None
-        self.org = organization
-        self.repo = repository
-        self.url = f'https://api.github.com/repos/{self.org}/{self.repo}/contents/{self.filename}'
+        self.url = f'https://api.github.com/repos/{repository}/contents/{self.filename}'
         self.latest = None
+        self.latest_file = None
         self.current = calculate_github_sha(self.filename)
+        self.request_header = {
+            "Authorization": f"token {token}",
+            'User-Agent': user
+        }
         self.update_latest()
 
     def to_json(self):
@@ -212,7 +210,7 @@ class OTAFileMetadata:
 
         :return: Nothing
         """
-        response = requests.get(self.url, headers=self.HEADERS).json()
+        response = requests.get(self.url, headers=self.request_header).json()
         if 'sha' in response:
             self.latest = response['sha']
             if self.new_version_available():
@@ -229,7 +227,6 @@ class OTAFileMetadata:
         else:
             print(response)
             time.sleep(1)
-
 
     def get_filename(self):
         """
@@ -339,7 +336,6 @@ class OTADatabase:
         :type data: list
         :return: Nothing
         """
-        # print(f'OTAD: write data:\n{data}')
         with open(self.filename, 'w') as file:
             json.dump(data, file)
 

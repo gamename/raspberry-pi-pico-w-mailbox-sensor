@@ -12,19 +12,14 @@ import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
+from ota import OTAUpdater
 
 import secrets
-from ota import OTAUpdater
 
 #
 # Reed switch pin to detect mailbox door open
 #
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
-
-#
-# Watchdog. If timeout value is exceeded, system is reset
-#
-WATCHDOG_TIMEOUT = 8000  # milliseconds (8 seconds)
 
 #
 # Network setup
@@ -33,26 +28,25 @@ WATCHDOG_TIMEOUT = 8000  # milliseconds (8 seconds)
 NETWORK_SLEEP_INTERVAL = 3  # seconds
 
 # How many times should we try to start the network connection?
-MAX_NETWORK_CONNECTION_ATTEMPTS = 10
+NETWORK_MAX_CONNECTION_ATTEMPTS = 10
 
 #
 # Mailbox door open handling.
 #
 # Generate exponentially longer backoff timers starting with this base value
-DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3  # 3 minutes
+DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 
-#
+# #
 # Over-the-air (OTA) Updates
 #
-# Which files will be updated?
-OTA_UPDATE_GITHUB_FILES = ["boot.py", "main.py", "ota.py"]
-
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 600  # seconds (10 min)
 
-# What organization/repo do we pull updates from?
-OTA_UPDATE_GITHUB_ORGANIZATION = 'gamename'
-OTA_UPDATE_GITHUB_REPOSITORY = 'raspberry-pi-pico-w-mailbox-sensor'
+# This is a dictionary of repos and their files we will be auto-updating
+OTA_UPDATE_GITHUB_REPOS = {
+    "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
+    "gamename/micropython-over-the-air-utility": ["ota.py"]
+}
 
 
 def current_time_to_string():
@@ -130,9 +124,9 @@ def wifi_connect(wlan):
         print(f'WIFI: Attempt: {counter}')
         time.sleep(NETWORK_SLEEP_INTERVAL)
         counter += 1
-        if counter > MAX_NETWORK_CONNECTION_ATTEMPTS:
+        if counter > NETWORK_MAX_CONNECTION_ATTEMPTS:
             print("WIFI: Network connection attempts exceeded. Restarting")
-            time.sleep(0.5)
+            time.sleep(1)
             reset()
     led.on()
     print("WIFI: Successfully connected to network")
@@ -175,9 +169,9 @@ def main():
     # Sync system time with NTP
     ntptime.settime()
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    ota_updater = OTAUpdater(OTA_UPDATE_GITHUB_ORGANIZATION,
-                             OTA_UPDATE_GITHUB_REPOSITORY,
-                             OTA_UPDATE_GITHUB_FILES)
+    ota_updater = OTAUpdater(secrets.GITHUB_USER,
+                             secrets.GITHUB_TOKEN,
+                             OTA_UPDATE_GITHUB_REPOS)
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
     ota_timer = time.time()
     # micropython.mem_info()
