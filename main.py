@@ -40,7 +40,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 # Over-the-air (OTA) Updates
 #
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 600  # seconds (10 min)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
 
 # This is a dictionary of repos and their files we will be auto-updating
 OTA_UPDATE_GITHUB_REPOS = {
