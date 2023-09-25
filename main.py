@@ -14,7 +14,7 @@ import utime
 from machine import Pin, reset
 
 import secrets
-from ota import OTAUpdater, OTANewFileWillNotValidate
+from ota import OTAUpdater
 
 #
 # Reed switch pin to detect mailbox door open
@@ -189,17 +189,14 @@ def main():
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and reed_switch.value():
-            try:
-                # The update process is memory intensive, so make sure
-                # we have all the resources we need.
-                gc.collect()
-                # micropython.mem_info()
-                if ota_updater.updated():
-                    print("MAIN: Restarting device")
-                    flash_led(3, 3)
-                    reset()
-            except OTANewFileWillNotValidate as err:
-                print(err.message)
+            # The update process is memory intensive, so make sure
+            # we have all the resources we need.
+            gc.collect()
+            # micropython.mem_info()
+            if ota_updater.updated():
+                print("MAIN: Restarting device")
+                flash_led(3, 3)
+                reset()
             ota_timer = time.time()
 
 
