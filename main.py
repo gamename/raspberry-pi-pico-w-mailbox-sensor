@@ -3,6 +3,7 @@ Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO 
 """
 
 import gc
+import os
 import sys
 import time
 
@@ -40,7 +41,7 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 # Over-the-air (OTA) Updates
 #
 # How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 14400  # seconds (4 hours)
+OTA_UPDATE_GITHUB_CHECK_INTERVAL = 600  # seconds (10 min)
 
 # This is a dictionary of repos and their files we will be auto-updating
 OTA_UPDATE_GITHUB_REPOS = {
@@ -51,6 +52,7 @@ OTA_UPDATE_GITHUB_REPOS = {
 #
 # How many times should we do a hard reset after an exception?
 MAX_EXCEPTION_RESETS = 10
+
 
 def current_time_to_string():
     """
@@ -174,6 +176,17 @@ def max_reset_attempts_exceeded():
     return bool(log_file_count > MAX_EXCEPTION_RESETS)
 
 
+def ota_update_check(updater):
+    #
+    # The update process is memory intensive, so make sure
+    # we have all the resources we need.
+    gc.collect()
+
+    if updater.updated():
+        print("CHECK: Restarting device after update")
+        time.sleep(1)  # Gives the system time to print the above msg
+        reset()
+
 def main():
     #
     # Set up a timer to force reboot on system hang
@@ -193,9 +206,14 @@ def main():
     ota_updater = OTAUpdater(secrets.GITHUB_USER,
                              secrets.GITHUB_TOKEN,
                              OTA_UPDATE_GITHUB_REPOS)
+
+    #
+    # Make sure our files are current before we start processing
+    ota_update_check(ota_updater)
+
     exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
+
     ota_timer = time.time()
-    # micropython.mem_info()
     print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
@@ -220,29 +238,24 @@ def main():
         # is closed. This is another way to prevent excessive 'door open' messages.
         ota_elapsed = int(time.time() - ota_timer)
         if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and mailbox_door_is_closed:
-            #
-            # The update process is memory intensive, so make sure
-            # we have all the resources we need.
-            gc.collect()
-            # micropython.mem_info()
-            if ota_updater.updated():
-                print("MAIN: Restarting device after update")
-                time.sleep(1)  # Gives the system time to print the above msg
-                reset()
+            ota_update_check(ota_updater)
             ota_timer = time.time()
 
 
 if __name__ == "__main__":
-
     try:
         main()
     except Exception as exc:
         log_traceback(exc)
         #
+        # This is a gamble. If the crash happens in the wrong place,
+        # the below request is a waste of time. But...its worth a try.
+        requests.post(secrets.REST_CRASH_NOTIFY_URL,
+                      data=secrets.HOSTNAME,
+                      headers={'content-type': 'application/json'})
+        #
         # Normally, flashing the LED is a waste of time since the
         # Pico is in a small closed box under my mailbox. But in
         # case I have it in a test harness, this is a nice visual
         # way to let me know something went wrong.
-        flash_led()
-        if not max_reset_attempts_exceeded():
-            reset()
+        flash_led(1000, 3)  # slow flashing
