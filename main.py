@@ -23,21 +23,12 @@ import secrets
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
 #
-# Network setup
-#
-# How long to sleep between network connection attempts?
-NETWORK_SLEEP_INTERVAL = 3  # seconds
-
-# How many times should we try to start the network connection?
-NETWORK_MAX_CONNECTION_ATTEMPTS = 10
-
-#
 # Mailbox door open handling.
 #
 # Generate exponentially longer backoff timers starting with this base value
 DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 
-# #
+#
 # Over-the-air (OTA) Updates
 #
 # How often should we check for updates?
@@ -48,10 +39,6 @@ OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
     "gamename/micropython-over-the-air-utility": ["ota.py"]
 }
-
-#
-# How many times should we do a hard reset after an exception?
-MAX_EXCEPTION_RESETS = 10
 
 
 def current_time_to_string():
@@ -108,28 +95,35 @@ def exponent_generator(base):
         yield base ** i
 
 
-def wifi_connect(wlan):
+def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_interval=3):
     """
-    Connect to Wi-Fi
+    Start a Wi-Fi connection
 
-    :param: watchdog - a watchdog timer
-    :param: wlan - a Wi-Fi network handle
-
-    Returns:
-        Nothing
+    :param wlan: A network handle
+    :type wlan: network.WLAN
+    :param ssid: Wi-Fi SSID
+    :type ssid: str
+    :param password: Wi-Fi password
+    :type password: str
+    :param connection_attempts: How many times should we attempt to connect?
+    :type connection_attempts: int
+    :param sleep_seconds_interval: Sleep time between attempts
+    :type sleep_seconds_interval: int
+    :return: Nothing
+    :rtype: None
     """
     led = Pin("LED", Pin.OUT)
     led.off()
     print("WIFI: Attempting network connection")
     wlan.active(True)
-    time.sleep(NETWORK_SLEEP_INTERVAL)
+    time.sleep(sleep_seconds_interval)
     counter = 0
-    wlan.connect(secrets.SSID, secrets.PASSWORD)
+    wlan.connect(ssid, password)
     while not wlan.isconnected():
         print(f'WIFI: Attempt: {counter}')
-        time.sleep(NETWORK_SLEEP_INTERVAL)
+        time.sleep(sleep_seconds_interval)
         counter += 1
-        if counter > NETWORK_MAX_CONNECTION_ATTEMPTS:
+        if counter > connection_attempts:
             print("WIFI: Network connection attempts exceeded. Restarting")
             time.sleep(1)
             reset()
@@ -158,13 +152,15 @@ def door_recheck_delay(reed_switch, delay_minutes):
             break
 
 
-def max_reset_attempts_exceeded():
+def max_reset_attempts_exceeded(max_exception_resets=3):
     """
     Determine when to stop trying to reset the system when exceptions are
     encountered. Each exception will create a traceback log file.  When there
     are too many logs, we give up trying to reset the system.  Prevents an
     infinite crash-reset-crash loop.
 
+    :param max_exception_resets: How many times do we crash before we give up?
+    :type max_exception_resets: int
     :return: True if we should stop resetting, False otherwise
     :rtype: bool
     """
@@ -173,7 +169,7 @@ def max_reset_attempts_exceeded():
     for file in files:
         if file.endswith(".log"):
             log_file_count += 1
-    return bool(log_file_count > MAX_EXCEPTION_RESETS)
+    return bool(log_file_count > max_exception_resets)
 
 
 def ota_update_check(updater):
@@ -198,7 +194,7 @@ def main():
     #
     # Turn ON and connect the station interface
     wlan = network.WLAN(network.STA_IF)
-    wifi_connect(wlan)
+    wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
     # Sync system time with NTP
     ntptime.settime()
@@ -231,7 +227,7 @@ def main():
 
         if not wlan.isconnected():
             print("MAIN: Restart network connection")
-            wifi_connect(wlan)
+            wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
         #
         # Only update firmware if the reed switch indicates the mailbox door
@@ -247,15 +243,13 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         log_traceback(exc)
-        #
-        # This is a gamble. If the crash happens in the wrong place,
-        # the below request is a waste of time. But...its worth a try.
-        requests.post(secrets.REST_CRASH_NOTIFY_URL,
-                      data=secrets.HOSTNAME,
-                      headers={'content-type': 'application/json'})
-        #
-        # Normally, flashing the LED is a waste of time since the
-        # Pico is in a small closed box under my mailbox. But in
-        # case I have it in a test harness, this is a nice visual
-        # way to let me know something went wrong.
-        flash_led(1000, 3)  # slow flashing
+        if max_reset_attempts_exceeded():
+            #
+            # This is a gamble. If the crash happens in the wrong place,
+            # the below request is a waste of time. But...its worth a try.
+            requests.post(secrets.REST_CRASH_NOTIFY_URL,
+                          data=secrets.HOSTNAME,
+                          headers={'content-type': 'application/json'})
+            flash_led(3000, 3)  # slow flashing
+        else:
+            reset()
