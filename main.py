@@ -34,7 +34,8 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 # This is a dictionary of repos and their files we will be auto-updating
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
-    "gamename/micropython-over-the-air-utility": ["ota.py"]
+    "gamename/micropython-over-the-air-utility": ["ota.py"],
+    "gamename/micropython-utilities": ["utils.py"]
 }
 
 
