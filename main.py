@@ -31,9 +31,6 @@ DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 #
 # Over-the-air (OTA) Updates
 #
-# How often should we check for updates?
-OTA_UPDATE_GITHUB_CHECK_INTERVAL = 600  # seconds (10 min)
-
 # This is a dictionary of repos and their files we will be auto-updating
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
@@ -172,6 +169,25 @@ def max_reset_attempts_exceeded(max_exception_resets=3):
     return bool(log_file_count > max_exception_resets)
 
 
+def ota_update_interval_exceeded(timer, interval=600):
+    """
+    Determine of we have waited long enough to check for OTA
+    file updates.
+
+    :param timer: The ota timer that tells us how long we have been waiting
+    :type timer: timer
+    :param interval: What is the max wait time? Defaults to 600 seconds (10 min)
+    :type interval: int
+    :return: True or False
+    :rtype: bool
+    """
+    exceeded = False
+    ota_elapsed = int(time.time() - timer)
+    if ota_elapsed > interval:
+        exceeded = True
+    return exceeded
+
+
 def ota_update_check(updater):
     #
     # The update process is memory intensive, so make sure
@@ -232,8 +248,7 @@ def main():
         #
         # Only update firmware if the reed switch indicates the mailbox door
         # is closed. This is another way to prevent excessive 'door open' messages.
-        ota_elapsed = int(time.time() - ota_timer)
-        if ota_elapsed > OTA_UPDATE_GITHUB_CHECK_INTERVAL and mailbox_door_is_closed:
+        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
             ota_update_check(ota_updater)
             ota_timer = time.time()
 
