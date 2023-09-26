@@ -48,6 +48,9 @@ OTA_UPDATE_GITHUB_REPOS = {
     "gamename/micropython-over-the-air-utility": ["ota.py"]
 }
 
+#
+# How many times should we do a hard reset after an exception?
+MAX_EXCEPTION_RESETS = 10
 
 def current_time_to_string():
     """
@@ -153,6 +156,24 @@ def door_recheck_delay(reed_switch, delay_minutes):
             break
 
 
+def max_reset_attempts_exceeded():
+    """
+    Determine when to stop trying to reset the system when exceptions are
+    encountered. Each exception will create a traceback log file.  When there
+    are too many logs, we give up trying to reset the system.  Prevents an
+    infinite crash-reset-crash loop.
+
+    :return: True if we should stop resetting, False otherwise
+    :rtype: bool
+    """
+    log_file_count = 0
+    files = os.listdir()
+    for file in files:
+        if file.endswith(".log"):
+            log_file_count += 1
+    return bool(log_file_count > MAX_EXCEPTION_RESETS)
+
+
 def main():
     #
     # Set up a timer to force reboot on system hang
@@ -223,4 +244,5 @@ if __name__ == "__main__":
         # case I have it in a test harness, this is a nice visual
         # way to let me know something went wrong.
         flash_led()
-        reset()
+        if not max_reset_attempts_exceeded():
+            reset()
