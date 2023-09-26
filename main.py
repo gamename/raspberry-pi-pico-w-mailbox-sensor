@@ -241,6 +241,8 @@ def main():
             ota_update_check(ota_updater)
             ota_timer = time.time()
 
+        x = 0 / 0
+
 
 if __name__ == "__main__":
     try:
