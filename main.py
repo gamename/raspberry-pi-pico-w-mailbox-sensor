@@ -22,11 +22,6 @@ import secrets
 #
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
-#
-# Mailbox door open handling.
-#
-# Generate exponentially longer backoff timers starting with this base value
-DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE = 3
 
 #
 # Over-the-air (OTA) Updates
@@ -82,7 +77,7 @@ def flash_led(count=100, interval=0.25):
     led.off()
 
 
-def exponent_generator(base):
+def exponent_generator(base=3):
     """
     Generate powers of a given base value
 
@@ -224,7 +219,7 @@ def main():
     # Make sure our files are current before we start processing
     ota_update_check(ota_updater)
 
-    exponent = exponent_generator(DOOR_OPEN_BACKOFF_DELAY_BASE_VALUE)
+    exponent = exponent_generator()
 
     ota_timer = time.time()
     print("MAIN: Starting event loop")
