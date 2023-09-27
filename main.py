@@ -140,6 +140,7 @@ def max_reset_attempts_exceeded(max_exception_resets=3):
             log_file_count += 1
     return bool(log_file_count > max_exception_resets)
 
+
 def exponent_generator(base=3):
     """
     Generate powers of a given base value
@@ -166,11 +167,9 @@ def main():
     #
     # Sync system time with NTP
     ntptime.settime()
-
     #
-    # set the reed switch to be LOW on door open and HIGH on door closed
+    # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-
     #
     # Create a series of exponential values to wait ever longer to recheck
     # door status
