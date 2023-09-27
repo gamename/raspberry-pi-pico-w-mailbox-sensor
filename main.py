@@ -110,6 +110,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
+        print("CRASH")
         utils.log_traceback(exc)
         if utils.max_reset_attempts_exceeded():
             #
