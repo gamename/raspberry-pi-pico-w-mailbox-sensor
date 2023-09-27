@@ -166,8 +166,14 @@ def main():
     #
     # Sync system time with NTP
     ntptime.settime()
+
+    #
+    # set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
+    #
+    # Create a series of exponential values to wait ever longer to recheck
+    # door status
     exponent = exponent_generator()
 
     print("MAIN: Starting event loop")
