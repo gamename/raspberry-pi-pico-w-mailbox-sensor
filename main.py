@@ -64,7 +64,12 @@ def main():
 
     #
     # Make sure our files are current before we start processing
-    utils.ota_update_check(ota_updater)
+    gc.collect()
+
+    if ota_updater.updated():
+        print("CHECK: Restarting device after update")
+        time.sleep(1)  # Gives the system time to print the above msg
+        reset()
 
     exponent = exponent_generator()
 
@@ -102,7 +107,6 @@ def main():
                 time.sleep(1)  # Gives the system time to print the above msg
                 reset()
 
-            utils.ota_update_check(ota_updater)
             ota_timer = time.time()
 
 
@@ -110,7 +114,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        print("CRASH")
+        print("C R A S H")
         utils.log_traceback(exc)
         if utils.max_reset_attempts_exceeded():
             #
