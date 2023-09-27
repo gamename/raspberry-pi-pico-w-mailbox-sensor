@@ -30,7 +30,7 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
     "gamename/micropython-over-the-air-utility": ["ota.py"],
-    "gamename/micropython-utilities": ["utils.py"]
+    "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
 
 
