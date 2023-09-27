@@ -2,6 +2,7 @@
 Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO Pin #22/Physical Pin #29
 """
 
+import gc
 import time
 
 import network
@@ -91,6 +92,16 @@ def main():
         # Only update firmware if the reed switch indicates the mailbox door
         # is closed. This is another way to prevent excessive 'door open' messages.
         if utils.ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
+            #
+            # The update process is memory intensive, so make sure
+            # we have all the resources we need.
+            gc.collect()
+
+            if ota_updater.updated():
+                print("CHECK: Restarting device after update")
+                time.sleep(1)  # Gives the system time to print the above msg
+                reset()
+
             utils.ota_update_check(ota_updater)
             ota_timer = time.time()
 
