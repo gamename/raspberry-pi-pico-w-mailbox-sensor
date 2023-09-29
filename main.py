@@ -37,10 +37,10 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 # Files we want to update over-the-air (OTA)
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
-    "gamename/micropython-over-the-air-utility": ["ota.py"]
+    "gamename/micropython-over-the-air-utility": ["ota.py"],
+    "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
 
-# "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 SYSTEM_RESET_INTERVAL = 600  # seconds (10 min)
 
 # If we run lower than this amount of memory, give up and reset the system
