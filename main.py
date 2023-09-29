@@ -22,6 +22,7 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
 REQUEST_HEADER = {'content-type': 'application/json'}
 
+
 def current_time_to_string():
     """
     Convert the current time to a human-readable string
@@ -101,7 +102,7 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     print("WIFI: Successfully connected to network")
 
 
-def door_recheck(reed_switch, delay_minutes):
+def door_is_closed(reed_switch, monitor_minutes) -> bool:
     """
     Deal with the situation where the mailbox door has been opened, but may
     not have been closed. The dilemma is you want to know if the door is left
@@ -109,17 +110,21 @@ def door_recheck(reed_switch, delay_minutes):
     the rate of notifications.
 
     :param reed_switch: A reed switch handle
-    :param delay_minutes: how long to delay before we return
+    :param monitor_minutes: how long to delay before we return
     :return: Nothing
     """
-    print(f'DSTATE: Delay {delay_minutes} minutes before rechecking door status')
+    print(f'DSTATE: Take up to {monitor_minutes} minutes rechecking reed switch status')
     state_counter = 0
-    while state_counter < delay_minutes:
-        state_counter += 1
-        time.sleep(60)
+    is_closed = False
+    while state_counter < monitor_minutes:
         if reed_switch.value():
             print("DSTATE: Door CLOSED")
+            is_closed = True
             break
+        else:
+            state_counter += 1
+            time.sleep(60)
+    return is_closed
 
 
 def max_reset_attempts_exceeded(max_exception_resets=3):
@@ -177,19 +182,24 @@ def main():
     exponent = exponent_generator()
 
     print("MAIN: Starting event loop")
+    door_remains_ajar = False
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
         if not mailbox_door_is_closed:
             print("MAIN: Door OPEN")
-            #
-            # Trigger a 'door open' text message
-            requests.post(secrets.REST_API_URL, headers=REQUEST_HEADER)
+            if door_remains_ajar:
+                print("MAIN: Sending subsequent ajar msg")
+                requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
+            else:
+                print("MAIN: Sending initial open msg")
+                requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
+                door_remains_ajar = True
             #
             # Once opened, the mailbox door may not be closed. If that happens,
-            # create exponentially longer periods between door checks. This ensures
-            # we do not get a flood of 'door open' SMS messages.
-            door_recheck(reed_switch, delay_minutes=next(exponent))
+            # create exponentially longer periods between notifications.
+            if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
+                door_remains_ajar = False
 
         if not wlan.isconnected():
             print("MAIN: Restart network connection")
@@ -207,6 +217,6 @@ if __name__ == "__main__":
             # This is a gamble. If the crash happens in the wrong place,
             # the below request is a waste of time. But...its worth a try.
             requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
-            flash_led(3000, 3)  # slow flashing
+            flash_led(3000, 3)  # slow flashing for about 2.5 hours
         else:
             reset()

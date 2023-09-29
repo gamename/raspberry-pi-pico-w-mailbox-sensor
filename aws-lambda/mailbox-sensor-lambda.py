@@ -5,14 +5,21 @@ import boto3
 
 
 def handler(event, context):
-    print(event)
-    print(context)
+    print(f"event:\n{event}")
+    print(f"context:\n{context}")
+
+    if 'open' in event['path']:
+        sns_msg = "Mailbox door opened"
+    elif 'aja' in event['path']:
+        sns_msg = "Mailbox door remains open"
+    else:
+        sns_msg = "Unknown mailbox door state"
 
     client = boto3.client('sns')
 
     response = client.publish(
         TopicArn=os.environ['SNS_TOPIC_ARN'],
-        Message='Mailbox door opened',
+        Message=sns_msg,
     )
 
     if response['ResponseMetadata']['HTTPStatusCode'] != 200:
