@@ -104,26 +104,26 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
 
 def door_is_closed(reed_switch, monitor_minutes) -> bool:
     """
-    Deal with the situation where the mailbox door has been opened, but may
-    not have been closed. The dilemma is you want to know if the door is left
-    open, but you don't want lots of texts about it. This routine slows down
-    the rate of notifications.
+    Monitor a door's reed switch for a specified period. Return whether
+    the door has been closed during that time.
 
     :param reed_switch: A reed switch handle
     :param monitor_minutes: how long to delay before we return
-    :return: Nothing
+    :return: True if door closed, False otherwise
     """
-    print(f'DSTATE: Take up to {monitor_minutes} minutes rechecking reed switch status')
+    print(f'DCLOSE: Waiting {monitor_minutes} minutes for door to close')
     state_counter = 0
     is_closed = False
     while state_counter < monitor_minutes:
         if reed_switch.value():
-            print("DSTATE: Door CLOSED")
+            print("DCLOSE: Door CLOSED")
             is_closed = True
             break
         else:
             state_counter += 1
             time.sleep(60)
+    if not is_closed:
+        print("DCLOSE: Door remains open")
     return is_closed
 
 
@@ -131,7 +131,7 @@ def max_reset_attempts_exceeded(max_exception_resets=3):
     """
     Determine when to stop trying to reset the system when exceptions are
     encountered. Each exception will create a traceback log file.  When there
-    are too many logs, we give up trying to reset the system.  Prevents an
+    are too many logs, we give up trying to reset the system.  This prevents an
     infinite crash-reset-crash loop.
 
     :param max_exception_resets: How many times do we crash before we give up?
@@ -158,6 +158,20 @@ def exponent_generator(base=3):
         yield base ** i
 
 
+def recheck_wifi(wlan):
+    """
+    Simple function to re-establish a Wi-Fi connection if needed
+
+    :param wlan: network handle
+    :type wlan: WLAN.network
+    :return: Nothing
+    :rtype: None
+    """
+    if not wlan.isconnected():
+        print("MAIN: Restart network connection")
+        wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
+
+
 def main():
     #
     # Set up a timer to force reboot on system hang
@@ -177,44 +191,53 @@ def main():
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     #
-    # Create a series of exponential values to wait ever longer to recheck
-    # door status
+    # Create a series of exponential values
     exponent = exponent_generator()
 
     print("MAIN: Starting event loop")
     door_remains_ajar = False
+    ajar_message_sent = False
     while True:
-        mailbox_door_is_closed = reed_switch.value()
-
-        if not mailbox_door_is_closed:
-            print("MAIN: Door OPEN")
+        mailbox_door_is_open = reed_switch.value()
+        #
+        # There are 2 scenarios covered by the logic below:
+        #
+        # 1. If the door is opened and immediately closed, only the 'open'
+        # message is sent.
+        #
+        # 2. If left open, 'ajar' messages are periodically sent and then a
+        # 'closed' message when the door is eventually closed.
+        if mailbox_door_is_open:
             if door_remains_ajar:
-                print("MAIN: Sending subsequent ajar msg")
+                print("MAIN: Sending ajar msg")
                 requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
+                ajar_message_sent = True
             else:
                 print("MAIN: Sending initial open msg")
                 requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
                 door_remains_ajar = True
             #
-            # Once opened, the mailbox door may not be closed. If that happens,
-            # create exponentially longer periods between notifications.
+            # Monitor open door for closure. Use exponentially longer periods
+            # between notifications to prevent alert flooding.
             if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
+                if ajar_message_sent:
+                    print("MAIN: Sending final closed msg")
+                    requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
+                    ajar_message_sent = False
                 door_remains_ajar = False
 
-        if not wlan.isconnected():
-            print("MAIN: Restart network connection")
-            wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
+        recheck_wifi(wlan)
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        print("C R A S H")
+        print("-C R A S H-")
         log_traceback(exc)
         if max_reset_attempts_exceeded():
             #
-            # This is a gamble. If the crash happens in the wrong place,
+            # Yes, this is a gamble. If the crash happens in the wrong place,
             # the below request is a waste of time. But...its worth a try.
             requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
             flash_led(3000, 3)  # slow flashing for about 2.5 hours

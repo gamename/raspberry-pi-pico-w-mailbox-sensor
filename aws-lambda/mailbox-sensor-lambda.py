@@ -12,6 +12,8 @@ def handler(event, context):
         sns_msg = "Mailbox door opened"
     elif 'ajar' in event['path']:
         sns_msg = "Mailbox door ajar"
+    elif 'closed' in event['path']:
+        sns_msg = "Mailbox door closed"
     else:
         sns_msg = "Unknown mailbox door state"
 
