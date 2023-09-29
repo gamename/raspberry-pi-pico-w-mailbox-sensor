@@ -10,8 +10,8 @@ def handler(event, context):
 
     if 'open' in event['path']:
         sns_msg = "Mailbox door opened"
-    elif 'aja' in event['path']:
-        sns_msg = "Mailbox door remains open"
+    elif 'ajar' in event['path']:
+        sns_msg = "Mailbox door ajar"
     else:
         sns_msg = "Unknown mailbox door state"
 
