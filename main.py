@@ -20,6 +20,7 @@ import secrets
 #
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
+REQUEST_HEADER = {'content-type': 'application/json'}
 
 def current_time_to_string():
     """
@@ -183,7 +184,7 @@ def main():
             print("MAIN: Door OPEN")
             #
             # Trigger a 'door open' text message
-            requests.post(secrets.REST_API_URL, headers={'content-type': 'application/json'})
+            requests.post(secrets.REST_API_URL, headers=REQUEST_HEADER)
             #
             # Once opened, the mailbox door may not be closed. If that happens,
             # create exponentially longer periods between door checks. This ensures
@@ -205,9 +206,7 @@ if __name__ == "__main__":
             #
             # This is a gamble. If the crash happens in the wrong place,
             # the below request is a waste of time. But...its worth a try.
-            requests.post(secrets.REST_CRASH_NOTIFY_URL,
-                          data=secrets.HOSTNAME,
-                          headers={'content-type': 'application/json'})
+            requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
             flash_led(3000, 3)  # slow flashing
         else:
             reset()
