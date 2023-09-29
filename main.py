@@ -1,5 +1,13 @@
 """
-Pico W 3v3/Physical pin #36 ----> reed switch (normally open) ----> Pico W GPIO Pin #22/Physical Pin #29
+This is a Raspberry Pi Pico W app to monitor a physical USPS mailbox.  The user is informed of mailbox status
+changes by a series text messages.
+
+Wiring
+    Pico W                                Reed Switch
+    ------                                -----------
+    3v3 (Physical pin #36) -------------> common
+    GPIO Pin #22 (Physical Pin #29) <---- normally open
+
 """
 
 import os
@@ -20,6 +28,8 @@ import secrets
 #
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
+#
+# A common request header for our POSTs
 REQUEST_HEADER = {'content-type': 'application/json'}
 
 
@@ -218,7 +228,7 @@ def main():
                 door_remains_ajar = True
             #
             # Monitor open door for closure. Use exponentially longer periods
-            # between notifications to prevent alert flooding.
+            # between 'ajar' notifications to prevent alert flooding.
             if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
                 if ajar_message_sent:
                     print("MAIN: Sending final closed msg")
