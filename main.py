@@ -258,7 +258,7 @@ def main():
         # message when the door is eventually closed.
         #
         if not mailbox_door_is_closed:
-            if door_remains_ajar and not ajar_message_sent:
+            if door_remains_ajar:
                 print("MAIN: Sending ajar msg")
                 check_free_memory()
                 requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
@@ -270,11 +270,12 @@ def main():
                 door_remains_ajar = True
 
             # Wait for the door to close
-            if door_is_closed(reed_switch, monitor_minutes=60) and ajar_message_sent:
-                print("MAIN: Sending final closed msg")
-                check_free_memory()
-                requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
-                ajar_message_sent = False
+            if door_is_closed(reed_switch, monitor_minutes=60):
+                if ajar_message_sent:
+                    print("MAIN: Sending final closed msg")
+                    check_free_memory()
+                    requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
+                    ajar_message_sent = False
                 door_remains_ajar = False
 
         check_wifi(wlan)
