@@ -43,7 +43,7 @@ OTA_UPDATE_GITHUB_REPOS = {
 # "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 SYSTEM_RESET_INTERVAL = 600  # seconds (10 min)
 
-# If we run lower than this amound of memory, give up and reset the system
+# If we run lower than this amount of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 30000
 
 
@@ -196,27 +196,6 @@ def check_wifi(wlan):
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
-def check_reset_timer(interval=SYSTEM_RESET_INTERVAL):
-    """
-    If enough time has passed, restart the system
-
-    :param interval:  The interval between resets
-    :type interval: int
-    :return: Nothing
-    :rtype: None
-    """
-    # Get the number of milliseconds since board reset
-    milliseconds = int(time.ticks_ms())
-
-    # Convert milliseconds to seconds
-    elapsed_seconds = int(milliseconds / 1000)
-
-    if elapsed_seconds > interval:
-        print("RESET: Timer expired. Resetting")
-        time.sleep(1)
-        reset()
-
-
 def get_ota_updates():
     """
     Pull over-the-air (OTA) updates if any are found
@@ -311,7 +290,6 @@ def main():
 
         check_wifi(wlan)
         check_free_memory()
-        check_reset_timer()
 
 
 if __name__ == "__main__":
