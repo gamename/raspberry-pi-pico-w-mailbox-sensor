@@ -10,6 +10,7 @@ Wiring
 
 """
 
+import gc
 import os
 import sys
 import time
@@ -20,6 +21,7 @@ import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
+from ota import OTAUpdater
 
 import secrets
 
@@ -31,6 +33,15 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 #
 # A common request header for our POSTs
 REQUEST_HEADER = {'content-type': 'application/json'}
+
+# Files we want to update over-the-air (OTA)
+OTA_UPDATE_GITHUB_REPOS = {
+    "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
+    "gamename/micropython-over-the-air-utility": ["ota.py"],
+    "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
+}
+
+OTA_CHECK_INTERVAL_TIMER = 600  # seconds (10 min)
 
 
 def current_time_to_string():
@@ -168,7 +179,7 @@ def exponent_generator(base=3):
         yield base ** i
 
 
-def recheck_wifi(wlan):
+def check_wifi(wlan):
     """
     Simple function to re-establish a Wi-Fi connection if needed
 
@@ -180,6 +191,39 @@ def recheck_wifi(wlan):
     if not wlan.isconnected():
         print("MAIN: Restart network connection")
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
+
+
+def reset_timer(interval=OTA_CHECK_INTERVAL_TIMER):
+    """
+    If enough time has passed, restart the system to potentially pull new OTA updates
+
+    :param interval:  The interval between resets
+    :type interval: int
+    :return: Nothing
+    :rtype: None
+    """
+    # Get the number of milliseconds since board reset
+    milliseconds = int(time.ticks_ms())
+
+    # Convert milliseconds to seconds
+    elapsed_seconds = int(milliseconds / 1000)
+
+    if elapsed_seconds > interval:
+        reset()
+
+
+def get_ota_updates():
+    """
+    Pull over-the-air (OTA) updates if any are found
+
+    :return: Nothing
+    :rtype: None
+    """
+    gc.collect()
+    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN,
+                         OTA_UPDATE_GITHUB_REPOS, save_backups=True)
+    if updater.updated():
+        reset()
 
 
 def main():
@@ -197,6 +241,9 @@ def main():
     #
     # Sync system time with NTP
     ntptime.settime()
+    #
+    # If there are any OTA updates, pull them and reset the system
+    get_ota_updates()
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -236,8 +283,10 @@ def main():
                     requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
                     ajar_message_sent = False
                 door_remains_ajar = False
+        else:
+            reset_timer()
 
-        recheck_wifi(wlan)
+        check_wifi(wlan)
 
 
 if __name__ == "__main__":
