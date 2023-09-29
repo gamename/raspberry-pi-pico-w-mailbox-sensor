@@ -16,15 +16,14 @@ import sys
 import time
 
 import network
-# import ntptime
+import ntptime
 import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
+from ota import OTAUpdater
 
 import secrets
-
-# from ota import OTAUpdater
 
 #
 # Reed switch pin to detect mailbox door open
@@ -43,6 +42,9 @@ OTA_UPDATE_GITHUB_REPOS = {
 
 # "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 OTA_CHECK_INTERVAL_TIMER = 600  # seconds (10 min)
+
+# If we run lower than this amound of memory, give up and reset the system
+MINIMUM_USABLE_MEMORY = 30000
 
 
 def current_time_to_string():
@@ -149,7 +151,7 @@ def door_is_closed(reed_switch, monitor_minutes) -> bool:
     return is_closed
 
 
-def max_reset_attempts_exceeded(max_exception_resets=3):
+def max_reset_attempts_exceeded(max_exception_resets=2):
     """
     Determine when to stop trying to reset the system when exceptions are
     encountered. Each exception will create a traceback log file.  When there
@@ -234,7 +236,26 @@ def get_ota_updates():
         print("OTA: None found")
 
 
+def check_free_memory():
+    """
+    THere is a memory leak in urequests. Rather than run until we crash, closely
+    monitor our memory consumption and force a reset when we run low.  This sucks.
+    :return: Nothing
+    :rtype: None
+    """
+    gc.collect()
+    free = gc.mem_free()
+    # print(f"MEM: Free memory: {free}")
+    if free < MINIMUM_USABLE_MEMORY:
+        print("MEM: Too little memory to continue. Resetting.")
+        time.sleep(1)
+        reset()
+
+
 def main():
+    #
+    # Enable automatic garbage collection
+    gc.enable()
     #
     # Hostname is limited to 15 chars at present (grr)
     network.hostname(secrets.HOSTNAME)
@@ -248,10 +269,10 @@ def main():
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
     # Sync system time with NTP
-    # ntptime.settime()
+    ntptime.settime()
     #
     # If there are any OTA updates, pull them and reset the system
-    # get_ota_updates()
+    get_ota_updates()
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -291,8 +312,10 @@ def main():
                     requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
                     ajar_message_sent = False
                 door_remains_ajar = False
+                exponent = exponent_generator()
 
         check_wifi(wlan)
+        check_free_memory()
 
 
 if __name__ == "__main__":
