@@ -16,14 +16,15 @@ import sys
 import time
 
 import network
-import ntptime
+# import ntptime
 import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
-from ota import OTAUpdater
 
 import secrets
+
+# from ota import OTAUpdater
 
 #
 # Reed switch pin to detect mailbox door open
@@ -132,7 +133,7 @@ def door_is_closed(reed_switch, monitor_minutes) -> bool:
     :param monitor_minutes: how long to delay before we return
     :return: True if door closed, False otherwise
     """
-    print(f'DCLOSE: Waiting {monitor_minutes} minutes for door to close')
+    print(f'DCLOSE: Pausing up to {monitor_minutes} minutes for door to close')
     state_counter = 0
     is_closed = False
     while state_counter < monitor_minutes:
@@ -247,7 +248,7 @@ def main():
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
     # Sync system time with NTP
-    ntptime.settime()
+    # ntptime.settime()
     #
     # If there are any OTA updates, pull them and reset the system
     # get_ota_updates()
@@ -262,7 +263,7 @@ def main():
     door_remains_ajar = False
     ajar_message_sent = False
     while True:
-        mailbox_door_is_open = reed_switch.value()
+        mailbox_door_is_closed = reed_switch.value()
         #
         # There are 2 scenarios covered by the logic below:
         #
@@ -271,13 +272,13 @@ def main():
         #
         # 2. If left open, 'ajar' messages are periodically sent and then a
         # 'closed' message when the door is eventually closed.
-        if mailbox_door_is_open:
+        if not mailbox_door_is_closed:
             if door_remains_ajar:
                 print("MAIN: Sending ajar msg")
                 requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
                 ajar_message_sent = True
             else:
-                print("MAIN: Sending initial open msg")
+                print("MAIN: Door open. Sending initial msg")
                 requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
                 door_remains_ajar = True
             #
@@ -290,9 +291,6 @@ def main():
                     requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
                     ajar_message_sent = False
                 door_remains_ajar = False
-        else:
-            pass
-            # reset_timer()
 
         check_wifi(wlan)
 
