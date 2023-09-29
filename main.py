@@ -148,7 +148,7 @@ def door_is_closed(reed_switch, monitor_minutes) -> bool:
             time.sleep(60)
     if not is_closed:
         print("DCLOSE: Door remains open")
-        print(f"DCLOSE: Free memory: {gc.mem_free()}")
+    print(f"DCLOSE: Free memory: {gc.mem_free()}")
     return is_closed
 
 
