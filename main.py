@@ -37,10 +37,10 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 # Files we want to update over-the-air (OTA)
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
-    "gamename/micropython-over-the-air-utility": ["ota.py"],
-    "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
+    "gamename/micropython-over-the-air-utility": ["ota.py"]
 }
 
+# "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 OTA_CHECK_INTERVAL_TIMER = 600  # seconds (10 min)
 
 
@@ -209,6 +209,8 @@ def reset_timer(interval=OTA_CHECK_INTERVAL_TIMER):
     elapsed_seconds = int(milliseconds / 1000)
 
     if elapsed_seconds > interval:
+        print("RESET: Timer expired. Resetting")
+        time.sleep(1)
         reset()
 
 
