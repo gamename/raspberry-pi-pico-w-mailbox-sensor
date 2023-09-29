@@ -208,6 +208,8 @@ def get_ota_updates():
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN,
                          OTA_UPDATE_GITHUB_REPOS, save_backups=True)
     if updater.updated():
+        print("OTA: Updates added. Resetting system.")
+        time.sleep(1)
         reset()
 
 
@@ -272,10 +274,12 @@ def main():
         if not mailbox_door_is_closed:
             if door_remains_ajar:
                 print("MAIN: Sending ajar msg")
+                check_free_memory()
                 requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
                 ajar_message_sent = True
             else:
                 print("MAIN: Door open. Sending initial msg")
+                check_free_memory()
                 requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
                 door_remains_ajar = True
             #
@@ -286,6 +290,7 @@ def main():
             if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
                 if ajar_message_sent:
                     print("MAIN: Sending final closed msg")
+                    check_free_memory()
                     requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
                     ajar_message_sent = False
                 door_remains_ajar = False
