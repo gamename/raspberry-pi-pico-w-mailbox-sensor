@@ -98,15 +98,15 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     print("WIFI: Attempting network connection")
     wlan.active(True)
     time.sleep(sleep_seconds_interval)
-    counter = 0
+    counter = 1
     wlan.connect(ssid, password)
     while not wlan.isconnected():
-        print(f'WIFI: Attempt: {counter}')
+        print(f'WIFI: Attempt {counter} of {connection_attempts}')
         time.sleep(sleep_seconds_interval)
         counter += 1
         if counter > connection_attempts:
-            print("WIFI: Network connection attempts exceeded. Restarting")
-            time.sleep(1)
+            print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
+            time.sleep(1)  # Gives the system time enough to print above msg to screen
             reset()
     led.on()
     print("WIFI: Successfully connected to network")
@@ -184,7 +184,7 @@ def recheck_wifi(wlan):
 
 def main():
     #
-    # Set up a timer to force reboot on system hang
+    # Hostname is limited to 15 chars at present (grr)
     network.hostname(secrets.HOSTNAME)
     #
     # Turn OFF the access point interface
@@ -201,7 +201,7 @@ def main():
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
     #
-    # Create a series of exponential values
+    # Create a series of exponents to be used in backoff timers
     exponent = exponent_generator()
 
     print("MAIN: Starting event loop")
@@ -228,7 +228,8 @@ def main():
                 door_remains_ajar = True
             #
             # Monitor open door for closure. Use exponentially longer periods
-            # between 'ajar' notifications to prevent alert flooding.
+            # between 'ajar' notifications to prevent alert flooding - and chronic
+            # ass pain.
             if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
                 if ajar_message_sent:
                     print("MAIN: Sending final closed msg")
