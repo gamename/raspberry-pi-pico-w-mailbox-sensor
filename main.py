@@ -172,17 +172,6 @@ def max_reset_attempts_exceeded(max_exception_resets=2):
     return bool(log_file_count > max_exception_resets)
 
 
-def exponent_generator(base=3):
-    """
-    Generate powers of a given base value
-
-    :param base: The base value (e.g. 3)
-    :return: The next exponent value
-    """
-    for i in range(1, 100):
-        yield base ** i
-
-
 def check_wifi(wlan):
     """
     Simple function to re-establish a Wi-Fi connection if needed
@@ -253,9 +242,6 @@ def main():
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    #
-    # Create a series of exponents to be used in backoff timers
-    exponent = exponent_generator()
 
     print("MAIN: Starting event loop")
     door_remains_ajar = False
@@ -268,11 +254,11 @@ def main():
         # 1. If the door is opened and immediately closed, only the 'open'
         # message is sent.
         #
-        # 2. If left open, 'ajar' messages are periodically sent and then a
-        # 'closed' message when the door is eventually closed.
+        # 2. If left open, an 'ajar' messages is sent and then a 'closed'
+        # message when the door is eventually closed.
         #
         if not mailbox_door_is_closed:
-            if door_remains_ajar:
+            if door_remains_ajar and not ajar_message_sent:
                 print("MAIN: Sending ajar msg")
                 check_free_memory()
                 requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
@@ -282,19 +268,14 @@ def main():
                 check_free_memory()
                 requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
                 door_remains_ajar = True
-            #
-            # Monitor open door for closure. Use exponentially longer periods
-            # between 'ajar' notifications to prevent alert flooding - and chronic
-            # ass pain.
-            #
-            if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
-                if ajar_message_sent:
-                    print("MAIN: Sending final closed msg")
-                    check_free_memory()
-                    requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
-                    ajar_message_sent = False
+
+            # Wait for the door to close
+            if door_is_closed(reed_switch, monitor_minutes=60) and ajar_message_sent:
+                print("MAIN: Sending final closed msg")
+                check_free_memory()
+                requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
+                ajar_message_sent = False
                 door_remains_ajar = False
-                exponent = exponent_generator()
 
         check_wifi(wlan)
         check_free_memory()
