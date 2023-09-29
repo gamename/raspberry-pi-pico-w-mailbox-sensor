@@ -100,7 +100,7 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     print("WIFI: Successfully connected to network")
 
 
-def door_recheck_delay(reed_switch, delay_minutes):
+def door_recheck(reed_switch, delay_minutes):
     """
     Deal with the situation where the mailbox door has been opened, but may
     not have been closed. The dilemma is you want to know if the door is left
@@ -188,7 +188,7 @@ def main():
             # Once opened, the mailbox door may not be closed. If that happens,
             # create exponentially longer periods between door checks. This ensures
             # we do not get a flood of 'door open' SMS messages.
-            door_recheck_delay(reed_switch, next(exponent))
+            door_recheck(reed_switch, delay_minutes=next(exponent))
 
         if not wlan.isconnected():
             print("MAIN: Restart network connection")
