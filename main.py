@@ -41,7 +41,7 @@ OTA_UPDATE_GITHUB_REPOS = {
 }
 
 # "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
-OTA_CHECK_INTERVAL_TIMER = 600  # seconds (10 min)
+SYSTEM_RESET_INTERVAL = 600  # seconds (10 min)
 
 # If we run lower than this amound of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 30000
@@ -196,9 +196,9 @@ def check_wifi(wlan):
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
-def reset_timer(interval=OTA_CHECK_INTERVAL_TIMER):
+def check_reset_timer(interval=SYSTEM_RESET_INTERVAL):
     """
-    If enough time has passed, restart the system to potentially pull new OTA updates
+    If enough time has passed, restart the system
 
     :param interval:  The interval between resets
     :type interval: int
@@ -215,8 +215,6 @@ def reset_timer(interval=OTA_CHECK_INTERVAL_TIMER):
         print("RESET: Timer expired. Resetting")
         time.sleep(1)
         reset()
-    else:
-        print(f"RESET: Interval: {interval} Elapsed: {elapsed_seconds}")
 
 
 def get_ota_updates():
@@ -226,14 +224,11 @@ def get_ota_updates():
     :return: Nothing
     :rtype: None
     """
-    print("OTA: Checking for updates")
     gc.collect()
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN,
                          OTA_UPDATE_GITHUB_REPOS, save_backups=True)
     if updater.updated():
         reset()
-    else:
-        print("OTA: None found")
 
 
 def check_free_memory():
@@ -260,7 +255,7 @@ def main():
     # Hostname is limited to 15 chars at present (grr)
     network.hostname(secrets.HOSTNAME)
     #
-    # Turn OFF the access point interface
+    # Explicitly turn OFF the access point interface
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
@@ -316,6 +311,7 @@ def main():
 
         check_wifi(wlan)
         check_free_memory()
+        check_reset_timer()
 
 
 if __name__ == "__main__":
