@@ -148,6 +148,7 @@ def door_is_closed(reed_switch, monitor_minutes) -> bool:
             time.sleep(60)
     if not is_closed:
         print("DCLOSE: Door remains open")
+        print(f"DCLOSE: Free memory: {gc.mem_free()}")
     return is_closed
 
 
@@ -267,6 +268,7 @@ def main():
         #
         # 2. If left open, 'ajar' messages are periodically sent and then a
         # 'closed' message when the door is eventually closed.
+        #
         if not mailbox_door_is_closed:
             if door_remains_ajar:
                 print("MAIN: Sending ajar msg")
@@ -280,6 +282,7 @@ def main():
             # Monitor open door for closure. Use exponentially longer periods
             # between 'ajar' notifications to prevent alert flooding - and chronic
             # ass pain.
+            #
             if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
                 if ajar_message_sent:
                     print("MAIN: Sending final closed msg")
