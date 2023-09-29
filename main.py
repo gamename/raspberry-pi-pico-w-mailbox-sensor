@@ -212,6 +212,8 @@ def reset_timer(interval=OTA_CHECK_INTERVAL_TIMER):
         print("RESET: Timer expired. Resetting")
         time.sleep(1)
         reset()
+    else:
+        print(f"RESET: Interval: {interval} Elapsed: {elapsed_seconds}")
 
 
 def get_ota_updates():
@@ -221,11 +223,14 @@ def get_ota_updates():
     :return: Nothing
     :rtype: None
     """
+    print("OTA: Checking for updates")
     gc.collect()
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN,
                          OTA_UPDATE_GITHUB_REPOS, save_backups=True)
     if updater.updated():
         reset()
+    else:
+        print("OTA: None found")
 
 
 def main():
@@ -245,7 +250,7 @@ def main():
     ntptime.settime()
     #
     # If there are any OTA updates, pull them and reset the system
-    get_ota_updates()
+    # get_ota_updates()
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -286,7 +291,8 @@ def main():
                     ajar_message_sent = False
                 door_remains_ajar = False
         else:
-            reset_timer()
+            pass
+            # reset_timer()
 
         check_wifi(wlan)
 
