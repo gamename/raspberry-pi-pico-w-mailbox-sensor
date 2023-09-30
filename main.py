@@ -265,15 +265,11 @@ def check_mailbox():
 
     if door_remains_ajar:
         print("MAILBOX: Sending ajar msg")
-        check_free_memory()
-        requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
-        gc.collect()
+        request_wrapper('ajar')
         ajar_message_sent = True
     else:
         print("MAILBOX: Door open. Sending initial msg")
-        check_free_memory()
-        requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
-        gc.collect()
+        request_wrapper('open')
         door_remains_ajar = True
 
     # Wait for the door to close. Use longer and longer delays by using
@@ -282,12 +278,27 @@ def check_mailbox():
     if door_is_closed(monitor_minutes=next(exponent)):
         if ajar_message_sent:
             print("MAILBOX: Sending final closed msg")
-            check_free_memory()
-            requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
-            gc.collect()
+            request_wrapper('closed')
             ajar_message_sent = False
         door_remains_ajar = False
         exponent = exponent_generator()
+
+
+def request_wrapper(verb):
+    """
+    There is a mem leak bug in 'urequests'. Clean up memory as much as possible on
+    every request call
+
+    https://github.com/micropython/micropython-lib/issues/741
+
+    :param verb: The state of the mailbox
+    :type verb: string
+    :return: Nothing
+    :rtype: None
+    """
+    check_free_memory()
+    requests.post(secrets.REST_API_URL + verb, headers=REQUEST_HEADER)
+    gc.collect()
 
 
 def main():
@@ -342,7 +353,7 @@ if __name__ == "__main__":
         log_traceback(exc)
         if max_reset_attempts_exceeded():
             #
-            # Yes, this is a gamble. If the crash happens in the wrong place,
+            # Yes, this is a gamble. If the crash happens at the wrong time,
             # the below request is a waste of time. But...its worth a try.
             requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
