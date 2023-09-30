@@ -132,7 +132,7 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     print("WIFI: Successfully connected to network")
 
 
-def door_is_closed(reed_switch, monitor_minutes) -> bool:
+def door_is_closed(monitor_minutes) -> bool:
     """
     Monitor a door's reed switch for a specified period. Return whether
     the door has been closed during that time.
@@ -141,6 +141,7 @@ def door_is_closed(reed_switch, monitor_minutes) -> bool:
     :param monitor_minutes: how long to delay before we return
     :return: True if door closed, False otherwise
     """
+    global reed_switch
     print(f'DCLOSE: Pausing up to {monitor_minutes} minutes for door to close')
     state_counter = 0
     is_closed = False
@@ -266,21 +267,24 @@ def check_mailbox():
         print("MAILBOX: Sending ajar msg")
         check_free_memory()
         requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
+        gc.collect()
         ajar_message_sent = True
     else:
         print("MAILBOX: Door open. Sending initial msg")
         check_free_memory()
         requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
+        gc.collect()
         door_remains_ajar = True
 
     # Wait for the door to close. Use longer and longer delays by using
     # exponent values. The result will be progressively longer intervals
     # between door 'ajar' messages.
-    if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
+    if door_is_closed(monitor_minutes=next(exponent)):
         if ajar_message_sent:
             print("MAILBOX: Sending final closed msg")
             check_free_memory()
             requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
+            gc.collect()
             ajar_message_sent = False
         door_remains_ajar = False
         exponent = exponent_generator()
@@ -310,13 +314,9 @@ def main():
 
     ota_timer = time.time()
     #
-    # If there are any OTA updates, pull them and reset the system.
-    gc.collect()
-    print(f"MAIN: Free mem before OTAUpdater: {gc.mem_free()}")
+    # If there are any OTA updates, pull them and reset the system if found
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
-    print(f"MAIN: Free mem after OTAUpdater: {gc.mem_free()}")
     gc.collect()
-    print(f"MAIN: Free mem after OTAUpdater and after garbage collection: {gc.mem_free()}")
     check_for_ota_updates()
     #
     # Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed
