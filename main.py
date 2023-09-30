@@ -74,8 +74,10 @@ def log_traceback(exception):
     traceback_stream = uio.StringIO()
     sys.print_exception(exception, traceback_stream)
     traceback_file = current_time_to_string() + '-' + 'traceback.log'
+    output = traceback_stream.getvalue()
+    print(output)
     with open(traceback_file, 'w') as f:
-        f.write(traceback_stream.getvalue())
+        f.write(output)
 
 
 def flash_led(count=100, interval=0.25):
@@ -305,6 +307,8 @@ def main():
     #
     # Sync system time with NTP
     ntptime.settime()
+
+    ota_timer = time.time()
     #
     # If there are any OTA updates, pull them and reset the system.
     gc.collect()
@@ -320,8 +324,6 @@ def main():
     exponent = exponent_generator()
     door_remains_ajar = False
     ajar_message_sent = False
-    ota_timer = time.time()
-
     print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
@@ -330,6 +332,9 @@ def main():
         check_for_ota_updates()
         check_wifi()
         check_free_memory()
+
+
+#        x = 0/0
 
 
 if __name__ == "__main__":
