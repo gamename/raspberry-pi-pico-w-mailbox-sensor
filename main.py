@@ -332,9 +332,7 @@ def main():
         check_for_ota_updates()
         check_wifi()
         check_free_memory()
-
-
-#        x = 0/0
+        x = 0 / 0
 
 
 if __name__ == "__main__":
