@@ -38,6 +38,9 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 # A common request header for our POSTs
 REQUEST_HEADER = {'content-type': 'application/json'}
 
+# How often should we check for OTA updates?
+OTA_CHECK_TIMER = 300  # seconds (5 min)
+
 # Files we want to update over-the-air (OTA)
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
@@ -204,6 +207,20 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY):
         reset()
 
 
+def check_ota_updates(ota_handle, timestamp, check_interval=OTA_CHECK_TIMER):
+    timer = timestamp
+    if int(time.time() - timestamp) > check_interval:
+        gc.collect()
+        print(f"UPDATE: Free mem before updates: {gc.mem_free()}")
+        if ota_handle.updated():
+            print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
+            time.sleep(1)
+            reset()
+        else:
+            timer = time.time()
+    return timer
+
+
 def main():
     #
     # Enable automatic garbage collection
@@ -229,9 +246,10 @@ def main():
     print(f"MAIN: Free mem before OTAUpdater: {gc.mem_free()}")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
     print(f"MAIN: Free mem after OTAUpdater: {gc.mem_free()}")
+    gc.collect()
+    print(f"MAIN: Free mem after OTAUpdater and after garbage collection: {gc.mem_free()}")
     if updater.updated():
-        print(f"MAIN: Free mem after updates: {gc.mem_free()}")
-        print("MAIN: Updates added. Resetting system.")
+        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Resetting system")
         time.sleep(1)
         reset()
     print(f"MAIN: Free mem with no updates: {gc.mem_free()}")
@@ -242,6 +260,7 @@ def main():
     print("MAIN: Starting event loop")
     door_remains_ajar = False
     ajar_message_sent = False
+    ota_timer = time.time()
     while True:
         mailbox_door_is_closed = reed_switch.value()
         #
@@ -274,6 +293,7 @@ def main():
                     ajar_message_sent = False
                 door_remains_ajar = False
 
+        ota_timer = check_ota_updates(updater, ota_timer)
         check_wifi(wlan)
         check_free_memory()
 
