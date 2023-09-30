@@ -25,6 +25,8 @@ from ota import OTAUpdater
 
 import secrets
 
+global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
+
 # 'urequests' mem leak workaround. If we run lower than this amount
 # of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 32000  # 32k
@@ -174,7 +176,18 @@ def max_reset_attempts_exceeded(max_exception_resets=2):
     return bool(log_file_count > max_exception_resets)
 
 
-def check_wifi(wlan):
+def exponent_generator(base=3):
+    """
+    Generate powers of a given base value
+
+    :param base: The base value (e.g. 3)
+    :return: The next exponent value
+    """
+    for i in range(1, 100):
+        yield base ** i
+
+
+def check_wifi():
     """
     Simple function to re-establish a Wi-Fi connection if needed
 
@@ -183,12 +196,13 @@ def check_wifi(wlan):
     :return: Nothing
     :rtype: None
     """
+    global wlan
     if not wlan.isconnected():
         print("MAIN: Restart network connection")
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
-def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY):
+def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
     """
     This sucks. There is a memory leak in urequests. Rather than run
     until we crash, closely monitor our memory consumption and force
@@ -200,6 +214,7 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY):
     :rtype: None
     """
     gc.collect()
+    time.sleep(interval)
     free = gc.mem_free()
     if free < min_memory:
         print(f"MEM: Too little memory ({free}) to continue. Resetting.")
@@ -207,21 +222,72 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY):
         reset()
 
 
-def check_ota_updates(ota_handle, timestamp, check_interval=OTA_CHECK_TIMER):
-    timer = timestamp
-    if int(time.time() - timestamp) > check_interval:
+def check_for_ota_updates(check_interval=OTA_CHECK_TIMER):
+    """
+    If there are OTA updates, pull them and restart the system.
+
+    :param check_interval: Length of time between checks
+    :type check_interval: int
+    :return: Nothing
+    :rtype: None
+    """
+    global ota_timer, updater
+    if int(time.time() - ota_timer) > check_interval:
         gc.collect()
         print(f"UPDATE: Free mem before updates: {gc.mem_free()}")
-        if ota_handle.updated():
+        if updater.updated():
             print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
             time.sleep(1)
             reset()
         else:
-            timer = time.time()
-    return timer
+            ota_timer = time.time()
+
+
+def check_mailbox():
+    """
+    Check the status of the mailbox.
+
+    There are 2 scenarios covered by the logic
+
+      1. If the door is opened and immediately closed, only the 'open'
+    message is sent.
+
+      2. If left open, an 'ajar' messages is sent and then a 'closed'
+    message when the door is eventually closed.
+
+    :return: Nothing
+    :rtype: None
+    """
+    global exponent, door_remains_ajar, ajar_message_sent, reed_switch
+
+    if door_remains_ajar:
+        print("MAILBOX: Sending ajar msg")
+        check_free_memory()
+        requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
+        ajar_message_sent = True
+    else:
+        print("MAILBOX: Door open. Sending initial msg")
+        check_free_memory()
+        requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
+        door_remains_ajar = True
+
+    # Wait for the door to close. Use longer and longer delays by using
+    # exponent values. The result will be progressively longer intervals
+    # between door 'ajar' messages.
+    if door_is_closed(reed_switch, monitor_minutes=next(exponent)):
+        if ajar_message_sent:
+            print("MAILBOX: Sending final closed msg")
+            check_free_memory()
+            requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
+            ajar_message_sent = False
+        door_remains_ajar = False
+        exponent = exponent_generator()
 
 
 def main():
+    #
+    # Global variables suck. But they come in handy for state data.
+    global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
     #
     # Enable automatic garbage collection
     gc.enable()
@@ -240,61 +306,29 @@ def main():
     # Sync system time with NTP
     ntptime.settime()
     #
-    # If there are any OTA updates, pull them and reset the system. Do this
-    # here and only here because there is a mem leak in "urequests"
+    # If there are any OTA updates, pull them and reset the system.
     gc.collect()
     print(f"MAIN: Free mem before OTAUpdater: {gc.mem_free()}")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
     print(f"MAIN: Free mem after OTAUpdater: {gc.mem_free()}")
     gc.collect()
     print(f"MAIN: Free mem after OTAUpdater and after garbage collection: {gc.mem_free()}")
-    if updater.updated():
-        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Resetting system")
-        time.sleep(1)
-        reset()
-    print(f"MAIN: Free mem with no updates: {gc.mem_free()}")
+    check_for_ota_updates()
     #
-    # Set the reed switch to be LOW on door open and HIGH on door closed
+    # Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-
-    print("MAIN: Starting event loop")
+    exponent = exponent_generator()
     door_remains_ajar = False
     ajar_message_sent = False
     ota_timer = time.time()
+
+    print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
-        #
-        # There are 2 scenarios covered by the logic below:
-        #
-        # 1. If the door is opened and immediately closed, only the 'open'
-        # message is sent.
-        #
-        # 2. If left open, an 'ajar' messages is sent and then a 'closed'
-        # message when the door is eventually closed.
-        #
         if not mailbox_door_is_closed:
-            if door_remains_ajar:
-                print("MAIN: Sending ajar msg")
-                check_free_memory()
-                requests.post(secrets.REST_API_URL + 'ajar', headers=REQUEST_HEADER)
-                ajar_message_sent = True
-            else:
-                print("MAIN: Door open. Sending initial msg")
-                check_free_memory()
-                requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
-                door_remains_ajar = True
-
-            # Wait for the door to close
-            if door_is_closed(reed_switch, monitor_minutes=60):
-                if ajar_message_sent:
-                    print("MAIN: Sending final closed msg")
-                    check_free_memory()
-                    requests.post(secrets.REST_API_URL + 'closed', headers=REQUEST_HEADER)
-                    ajar_message_sent = False
-                door_remains_ajar = False
-
-        ota_timer = check_ota_updates(updater, ota_timer)
-        check_wifi(wlan)
+            check_mailbox()
+        check_for_ota_updates()
+        check_wifi()
         check_free_memory()
 
 
