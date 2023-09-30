@@ -226,13 +226,15 @@ def main():
     # If there are any OTA updates, pull them and reset the system. Do this
     # here and only here because there is a mem leak in "urequests"
     gc.collect()
-    print(f"MAIN: Free mem: {gc.mem_free()}")
+    print(f"MAIN: Free mem before OTAUpdater: {gc.mem_free()}")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
+    print(f"MAIN: Free mem after OTAUpdater: {gc.mem_free()}")
     if updater.updated():
-        print(f"MAIN: Free mem: {gc.mem_free()}")
+        print(f"MAIN: Free mem after updates: {gc.mem_free()}")
         print("MAIN: Updates added. Resetting system.")
         time.sleep(1)
         reset()
+    print(f"MAIN: Free mem with no updates: {gc.mem_free()}")
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
