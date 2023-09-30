@@ -25,6 +25,10 @@ from ota import OTAUpdater
 
 import secrets
 
+# 'urequests' mem leak workaround. If we run lower than this amount
+# of memory, give up and reset the system
+MINIMUM_USABLE_MEMORY = 32000  # 32k
+
 #
 # Reed switch pin to detect mailbox door open
 #
@@ -40,11 +44,6 @@ OTA_UPDATE_GITHUB_REPOS = {
     "gamename/micropython-over-the-air-utility": ["ota.py"],
     "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
-
-SYSTEM_RESET_INTERVAL = 600  # seconds (10 min)
-
-# If we run lower than this amount of memory, give up and reset the system
-MINIMUM_USABLE_MEMORY = 32000  # 32k
 
 
 def current_time_to_string():
