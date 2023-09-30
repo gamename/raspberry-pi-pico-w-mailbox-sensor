@@ -44,7 +44,7 @@ OTA_UPDATE_GITHUB_REPOS = {
 SYSTEM_RESET_INTERVAL = 600  # seconds (10 min)
 
 # If we run lower than this amount of memory, give up and reset the system
-MINIMUM_USABLE_MEMORY = 30000
+MINIMUM_USABLE_MEMORY = 32000  # 32k
 
 
 def current_time_to_string():
@@ -186,34 +186,21 @@ def check_wifi(wlan):
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
-def get_ota_updates():
+def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY):
     """
-    Pull over-the-air (OTA) updates if any are found
+    This sucks. There is a memory leak in urequests. Rather than run
+    until we crash, closely monitor our memory consumption and force
+    a reset when we run low.
 
-    :return: Nothing
-    :rtype: None
-    """
-    gc.collect()
-    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN,
-                         OTA_UPDATE_GITHUB_REPOS, save_backups=True)
-    if updater.updated():
-        print("OTA: Updates added. Resetting system.")
-        time.sleep(1)
-        reset()
+    https://github.com/micropython/micropython-lib/issues/741
 
-
-def check_free_memory():
-    """
-    THere is a memory leak in urequests. Rather than run until we crash, closely
-    monitor our memory consumption and force a reset when we run low.  This sucks.
     :return: Nothing
     :rtype: None
     """
     gc.collect()
     free = gc.mem_free()
-    # print(f"MEM: Free memory: {free}")
-    if free < MINIMUM_USABLE_MEMORY:
-        print("MEM: Too little memory to continue. Resetting.")
+    if free < min_memory:
+        print(f"MEM: Too little memory ({free}) to continue. Resetting.")
         time.sleep(1)
         reset()
 
@@ -237,8 +224,14 @@ def main():
     # Sync system time with NTP
     ntptime.settime()
     #
-    # If there are any OTA updates, pull them and reset the system
-    get_ota_updates()
+    # If there are any OTA updates, pull them and reset the system. Do this
+    # here and only here because there is a mem leak in "urequests"
+    gc.collect()
+    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
+    if updater.updated():
+        print("MAIN: Updates added. Resetting system.")
+        time.sleep(1)
+        reset()
     #
     # Set the reed switch to be LOW on door open and HIGH on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
