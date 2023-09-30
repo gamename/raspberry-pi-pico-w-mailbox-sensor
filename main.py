@@ -31,6 +31,10 @@ global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, w
 # of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 32000  # 32k
 
+# Crash loop detector. If we crash more than 3 times,
+# give up restarting the system
+MAX_EXCEPTION_RESETS_ALLOWED = 3
+
 #
 # Reed switch pin to detect mailbox door open
 #
@@ -159,7 +163,7 @@ def door_is_closed(monitor_minutes) -> bool:
     return is_closed
 
 
-def max_reset_attempts_exceeded(max_exception_resets=2):
+def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
     """
     Determine when to stop trying to reset the system when exceptions are
     encountered. Each exception will create a traceback log file.  When there
@@ -209,7 +213,8 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
     """
     This sucks. There is a memory leak in urequests. Rather than run
     until we crash, closely monitor our memory consumption and force
-    a reset when we run low.
+    a reset when we run low. By forcing a reset, we do NOT create
+    traceback logs which will trigger the crash loop detector.
 
     https://github.com/micropython/micropython-lib/issues/741
 
