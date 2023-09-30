@@ -226,8 +226,10 @@ def main():
     # If there are any OTA updates, pull them and reset the system. Do this
     # here and only here because there is a mem leak in "urequests"
     gc.collect()
+    print(f"MAIN: Free mem: {gc.mem_free()}")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
     if updater.updated():
+        print(f"MAIN: Free mem: {gc.mem_free()}")
         print("MAIN: Updates added. Resetting system.")
         time.sleep(1)
         reset()
