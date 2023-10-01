@@ -77,20 +77,26 @@ class MailBoxStateMachine:
             return
 
         elif event == 'open' and self.throttle_events:
-            if self.state == 'ajar' and self.ajar_timer_expired():
-                print("MBSM: 'ajar' update")
-                self.execute_actions()
+            self.handle_throttled_events()
 
         elif event == 'open':
             self.handle_open_events()
 
         elif event == 'closed' and self.state != 'closed':
-            self.debug_print(f"MBSM: Event: {event} and State: {self.state}")
-            self.state = 'closed'
-            print("MBSM: second 'closed'")
-            self.execute_actions()
+            self.handle_closed_events()
+
         else:
             raise RuntimeError(f"MBSM: Should not happen. state={self.state} and event={event}")
+
+    def handle_throttled_events(self):
+        if self.state == 'ajar' and self.ajar_timer_expired():
+            print("MBSM: 'ajar' update")
+            self.execute_ajar_actions()
+
+    def handle_closed_events(self):
+        self.state = 'closed'
+        print("MBSM: second 'closed'")
+        self.execute_closed_actions()
 
     def handle_open_events(self):
         """
@@ -102,55 +108,67 @@ class MailBoxStateMachine:
         if self.state == 'open':
             self.state = 'ajar'
             print("MBSM: 'ajar'")
-            self.execute_actions()
+            self.execute_ajar_actions()
 
         elif self.state == 'ajar':
             self.state = 'closed'
             print("MBSM: 'closed'")
-            self.execute_actions()
+            self.execute_closed_actions()
 
         elif self.state == 'closed':
             self.state = 'open'
             print("MBSM: 'open'")
-            self.execute_actions()
+            self.execute_open_actions()
 
         else:
             raise RuntimeError(f"MBSM: SHOULD NOT OCCUR state={self.state}")
 
-    def execute_actions(self):
+    def execute_ajar_actions(self):
         """
-        These are actions dictated by the current state
+        Handle the actions for the 'ajar' state (i.e. the door is left open).
+
+        Use an exponent to time the frequency of our messages to the user.  The longer
+        the passage of time, the less frequently we send an 'ajar' notification. This
+        keeps the user informed without flooding them with status.
 
         :return: Nothing
         :rtype: None
         """
-        if self.state == 'open':
-            self.send_request('open')
-            #
-            # Most of the time, the door is opened and closed quickly.
-            # Give it time for that to happen.
-            time.sleep(self.wait_for_door_closure)
+        self.send_request('ajar')
+        self.ajar_timestamp = time.time()
+        exponent = next(self.exponent_generator)
+        self.current_exponent_seconds = exponent * 60
+        self.debug_print(f"MBSM: Ajar timer reset. Will send another SMS msg in {exponent} minutes")
+        if not self.ajar_message_sent:
+            self.ajar_message_sent = True
+        if not self.throttle_events:
+            self.throttle_events = True
 
-        elif self.state == 'ajar':
-            self.send_request('ajar')
-            self.ajar_timestamp = time.time()
-            exponent = next(self.exponent_generator)
-            self.current_exponent_seconds = exponent * 60
-            print(f"MBSM: New wait time exponent: {exponent} minutes ({self.current_exponent_seconds} seconds)")
-            if not self.ajar_message_sent:
-                self.ajar_message_sent = True
-            if not self.throttle_events:
-                self.throttle_events = True
+    def execute_closed_actions(self):
+        """
+        Actions for the 'closed' state.
 
-        elif self.state == 'closed':
-            if self.ajar_message_sent:
-                self.send_request('closed')
-                self.ajar_message_sent = False
-                self.exponent_generator = exponent_generator(self.backoff_timer_base)
-            self.throttle_events = False
+        :return: Nothing
+        :rtype: None
+        """
+        if self.ajar_message_sent:
+            self.send_request('closed')
+            self.ajar_message_sent = False
+            self.exponent_generator = exponent_generator(self.backoff_timer_base)
+        self.throttle_events = False
 
-        else:
-            raise RuntimeError("MBSM: Should not happen")
+    def execute_open_actions(self):
+        """
+        Handle the actions for the 'open' state
+
+        :return: Nothing
+        :rtype:  None
+        """
+        self.send_request('open')
+        #
+        # Most of the time, the door is opened and closed quickly.
+        # Give it time for that to happen.
+        time.sleep(self.wait_for_door_closure)
 
     def send_request(self, state):
         """
