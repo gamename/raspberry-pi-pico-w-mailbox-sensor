@@ -271,7 +271,7 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
-    print(f"There are {get_log_count()} traceback logs present")
+    exc_print(f"There are {get_log_count()} traceback logs present")
 
     debug_print("MAIN: Sync system time with NTP")
     try:
