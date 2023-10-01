@@ -28,7 +28,7 @@ from mailbox import MailBoxStateMachine, MailBoxNoMemory
 
 #
 # print debug messages
-DEBUG = False
+DEBUG = True
 
 #
 # 'urequests' mem leak workaround. If we detect less than this amount
