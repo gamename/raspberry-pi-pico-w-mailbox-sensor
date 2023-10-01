@@ -164,7 +164,13 @@ class MailBoxStateMachine:
         :return: Nothing
         :rtype: None
         """
-        requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+        try:
+            requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+        except OSError:
+            raise MailBoxNoMemory()
+        except MemoryError:
+            raise MailBoxNoMemory()
+
         gc.collect()
         if gc.mem_free() < self.minium_memory:
             raise MailBoxNoMemory()
