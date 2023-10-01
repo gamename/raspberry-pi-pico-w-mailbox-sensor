@@ -24,6 +24,7 @@ from machine import Pin, reset
 from ota import OTAUpdater
 
 import secrets
+from mailbox import MailBoxStateMachine
 
 global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
 
@@ -49,7 +50,7 @@ OTA_CHECK_TIMER = 300  # seconds (5 min)
 
 # Files we want to update over-the-air (OTA)
 OTA_UPDATE_GITHUB_REPOS = {
-    "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py"],
+    "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py", "mailbox.py"],
     "gamename/micropython-over-the-air-utility": ["ota.py"],
     "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
@@ -340,11 +341,14 @@ def main():
     exponent = exponent_generator()
     door_remains_ajar = False
     ajar_message_sent = False
+
+    mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL)
     print("MAIN: Starting event loop")
     while True:
-        mailbox_door_is_closed = reed_switch.value()
-        if not mailbox_door_is_closed:
-            check_mailbox()
+        mailbox.transition(reed_switch.value())
+        # mailbox_door_is_closed = reed_switch.value()
+        # if not mailbox_door_is_closed:
+        #     check_mailbox()
         check_for_ota_updates()
         check_wifi()
         check_free_memory()
