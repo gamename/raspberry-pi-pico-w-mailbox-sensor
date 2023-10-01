@@ -137,7 +137,7 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     """
     led = Pin("LED", Pin.OUT)
     led.off()
-    debug_print("WIFI: Attempting network connection")
+    print("WIFI: Attempting network connection")
     wlan.active(True)
     time.sleep(sleep_seconds_interval)
     counter = 1
@@ -147,11 +147,11 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
         time.sleep(sleep_seconds_interval)
         counter += 1
         if counter > connection_attempts:
-            debug_print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
+            print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
             time.sleep(1)  # Gives the system time enough to print above msg to screen
             reset()
     led.on()
-    debug_print("WIFI: Successfully connected to network")
+    print("WIFI: Successfully connected to network")
 
 
 def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
@@ -273,7 +273,7 @@ def main():
     debug_print("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    debug_print("MAIN: Starting event loop")
+    print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
