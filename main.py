@@ -24,7 +24,7 @@ from machine import Pin, reset
 from ota import OTAUpdater, OTANoMemory
 
 import secrets
-from mailbox import MailBoxStateMachine
+from mailbox import MailBoxStateMachine, MailBoxNoMemory
 
 #
 # 'urequests' mem leak workaround. If we detect less than this amount
@@ -232,7 +232,6 @@ def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
 
 
 def main():
-    ota_update_enabled = True
     #
     print("MAIN: Enable automatic garbage collection")
     gc.enable()
@@ -253,20 +252,16 @@ def main():
 
     print("MAIN: set the ota timer")
     ota_timer = time.time()
-    #
+
     print("MAIN: If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
     print("MAIN: updater instantiated")
     gc.collect()
     print("MAIN: run update")
-    try:
-        if updater.updated():
-            print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
-            time.sleep(1)
-            reset()
-    except OTANoMemory:
-        print("MAIN: Updater ran out of memory. Disabling.")
-        ota_update_enabled = False
+    if updater.updated():
+        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
+        time.sleep(1)
+        reset()
     #
     print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -278,7 +273,12 @@ def main():
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
-        mailbox.event_handler(mailbox_door_is_closed)
+        try:
+            mailbox.event_handler(mailbox_door_is_closed)
+        except MailBoxNoMemory:
+            print("MAIN: Ran out of mailbox memory")
+            time.sleep(1)
+            reset()
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed and ota_update_enabled:
             gc.collect()
@@ -287,8 +287,9 @@ def main():
                     time.sleep(1)
                     reset()
             except OTANoMemory:
-                print("MAIN: Ran out of memory on update. Disabling updates")
-                ota_update_enabled = False
+                print("MAIN: Ran out of OTA memory on update.")
+                time.sleep(1)
+                reset()
             else:
                 ota_timer = time.time()
 
