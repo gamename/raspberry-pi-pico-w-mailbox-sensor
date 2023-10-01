@@ -1,4 +1,5 @@
 import gc
+import time
 
 import urequests as requests
 
@@ -6,11 +7,12 @@ import urequests as requests
 class MailBoxStateMachine:
     REQUEST_HEADER = {'content-type': 'application/json'}
 
-    def __init__(self, request_url, state=True):
+    def __init__(self, request_url, state=True, wait_for_door_closure=60):
         self.request_url = request_url
         self.state = 'closed' if state else 'open'
         self.ajar_message_sent = False
         self.throttle_events = False
+        self.wait_for_door_closure = wait_for_door_closure  # seconds
 
     def event_handler(self, door_closed):
         event = 'closed' if door_closed else 'open'
@@ -51,6 +53,10 @@ class MailBoxStateMachine:
     def execute_actions(self):
         if self.state == 'open':
             self.send_request('open')
+            #
+            # Most of the time, the door is opened and closed quickly.
+            # Give it time for that to happen.
+            time.sleep(self.wait_for_door_closure)
 
         elif self.state == 'ajar':
             self.send_request('ajar')
