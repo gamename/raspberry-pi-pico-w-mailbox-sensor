@@ -304,6 +304,7 @@ def main():
 
 if __name__ == "__main__":
     try:
+        print("Starting main")
         main()
     except Exception as exc:
         print("-C R A S H-")
