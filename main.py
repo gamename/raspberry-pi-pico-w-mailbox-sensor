@@ -209,25 +209,6 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
         reset()
 
 
-def ota_update(updater, ota_timer):
-    """
-    If there are OTA updates, pull them and restart the system.
-
-    :return: Nothing
-    :rtype: None
-    """
-    gc.collect()
-    if updater.updated():
-        debug_print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
-        time.sleep(1)
-        reset()
-    else:
-        gc.collect()
-        ota_timer = time.time()
-
-    return ota_timer
-
-
 def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
     """
     Determine if we have waited long enough to check for OTA
