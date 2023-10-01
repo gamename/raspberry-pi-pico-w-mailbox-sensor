@@ -12,7 +12,7 @@ class MailBoxStateMachine:
         self.ajar_message_sent = False
         self.throttle_events = False
 
-    def transition(self, door_closed):
+    def event_handler(self, door_closed):
         event = 'closed' if door_closed else 'open'
 
         if event == 'closed' and self.state == 'closed':
@@ -24,26 +24,26 @@ class MailBoxStateMachine:
         elif event == 'open':
             if self.state == 'open':
                 self.state = 'ajar'
-                print("run 'ajar' action")
+                print("Run 'ajar' action")
                 self.execute_actions()
 
             elif self.state == 'ajar':
                 self.state = 'closed'
-                print("run 'closed' actions")
+                print("Run 'closed' actions")
                 self.execute_actions()
 
             elif self.state == 'closed':
                 self.state = 'open'
-                print("run 'open' actions")
+                print("Run 'open' actions")
                 self.execute_actions()
 
             else:
                 print(f"SHOULD NOT OCCUR state={self.state} and event={event}")
 
         elif event == 'closed' and self.state != 'closed':
-            print(f"event: {event} and state: {self.state}")
+            print(f"Event: {event} and State: {self.state}")
             self.state = 'closed'
-            print("run second 'closed' actions")
+            print("Run second 'closed' actions")
             self.execute_actions()
         else:
             print(f"Should not happen. state={self.state} and event={event}")

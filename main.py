@@ -28,7 +28,8 @@ from mailbox import MailBoxStateMachine
 
 global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
 
-# 'urequests' mem leak workaround. If we run lower than this amount
+#
+# 'urequests' mem leak workaround. If we detect less than this amount
 # of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 32000  # 32k
 
@@ -38,16 +39,17 @@ MAX_EXCEPTION_RESETS_ALLOWED = 3
 
 #
 # Reed switch pin to detect mailbox door open
-#
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
 #
 # A common request header for our POSTs
 REQUEST_HEADER = {'content-type': 'application/json'}
 
+#
 # How often should we check for OTA updates?
 OTA_CHECK_TIMER = 300  # seconds (5 min)
 
+#
 # Files we want to update over-the-air (OTA)
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py", "mailbox.py"],
@@ -231,25 +233,40 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
         reset()
 
 
-def check_for_ota_updates(check_interval=OTA_CHECK_TIMER):
+def ota_update():
     """
     If there are OTA updates, pull them and restart the system.
 
-    :param check_interval: Length of time between checks
-    :type check_interval: int
     :return: Nothing
     :rtype: None
     """
     global ota_timer, updater
-    if int(time.time() - ota_timer) > check_interval:
+    gc.collect()
+    if updater.updated():
+        print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
+        time.sleep(1)
+        reset()
+    else:
         gc.collect()
-        print(f"UPDATE: Free mem before updates: {gc.mem_free()}")
-        if updater.updated():
-            print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
-            time.sleep(1)
-            reset()
-        else:
-            ota_timer = time.time()
+        ota_timer = time.time()
+
+
+def ota_update_interval_exceeded(interval=OTA_CHECK_TIMER):
+    """
+    Determine if we have waited long enough to check for OTA
+    file updates.
+
+    :param interval: What is the max wait time? Defaults to 600 seconds (10 min)
+    :type interval: int
+    :return: True or False
+    :rtype: bool
+    """
+    global ota_timer
+    exceeded = False
+    ota_elapsed = int(time.time() - ota_timer)
+    if ota_elapsed > interval:
+        exceeded = True
+    return exceeded
 
 
 def check_mailbox():
@@ -334,7 +351,8 @@ def main():
     # If there are any OTA updates, pull them and reset the system if found
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
     gc.collect()
-    check_for_ota_updates()
+    ota_update()
+
     #
     # Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -345,11 +363,9 @@ def main():
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL)
     print("MAIN: Starting event loop")
     while True:
-        mailbox.transition(reed_switch.value())
-        # mailbox_door_is_closed = reed_switch.value()
-        # if not mailbox_door_is_closed:
-        #     check_mailbox()
-        check_for_ota_updates()
+        mailbox.event_handler(reed_switch.value())
+        if ota_update_interval_exceeded():
+            ota_update()
         check_wifi()
         check_free_memory()
 
