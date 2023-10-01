@@ -60,6 +60,53 @@ OTA_UPDATE_GITHUB_REPOS = {
 }
 
 
+def get_file_age(filename):
+    """
+    Get the age of a file in days
+    
+    :return: The age in days or 0
+    :rtype: int 
+    """
+    file_stat = os.stat(filename)
+
+    # Extract the modification timestamp (in seconds since the epoch)
+    modification_time = file_stat[8]
+
+    current_time = time.time()
+    age_seconds = current_time - modification_time
+
+    age_hours = (age_seconds % 86400) // 3600  # Number of seconds in an hour
+
+    print(f"AGE: The file {filename} is {age_hours} old")
+
+    return int(age_hours)
+
+
+def purge_old_log_files(max_age=48):
+    """
+    Get rid of old traceback files based on their age
+
+    :param max_age: The longest we will keep them
+    :type max_age: int
+    :return: Nothing
+    :rtype: None
+    """
+    deletions = False
+    del_count = 0
+    files = os.listdir()
+    for file in files:
+        if file.endswith('.log') and get_file_age(file) > max_age:
+            os.remove(file)
+            print(f"DEL: Deleted: {file}")
+            del_count += 1
+            if not deletions:
+                deletions = True
+    if deletions:
+        print(f"DEL: Deleted {del_count} logs")
+    else:
+        print("DEL: No log files deleted")
+
+
 def get_log_count():
     """
     Get a count of how many traceback logs we have
@@ -272,6 +319,7 @@ def main():
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
     exc_print(f"MAIN: There are {get_log_count()} traceback logs present")
+    purge_old_log_files()
 
     debug_print("MAIN: Sync system time with NTP")
     try:
