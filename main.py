@@ -60,6 +60,21 @@ OTA_UPDATE_GITHUB_REPOS = {
 }
 
 
+def get_log_count():
+    """
+    Get a count of how many traceback logs we have
+
+    :return: A count of log files
+    :rtype: int
+    """
+    count = 0
+    files = os.listdir()
+    for file in files:
+        if file.endswith('.log'):
+            count += 1
+    return count
+
+
 def exc_print(msg):
     """
     Print for exceptions prior to a reset() and other important output
@@ -255,6 +270,8 @@ def main():
     debug_print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
+    #
+    print(f"There are {get_log_count()} traceback logs present")
 
     debug_print("MAIN: Sync system time with NTP")
     try:
