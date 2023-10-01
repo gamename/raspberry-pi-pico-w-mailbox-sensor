@@ -157,7 +157,7 @@ def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWE
     return bool(log_file_count > max_exception_resets)
 
 
-def check_wifi():
+def check_wifi(wlan):
     """
     Simple function to re-establish a Wi-Fi connection if needed
 
@@ -284,7 +284,7 @@ def main():
             else:
                 ota_timer = time.time()
 
-        check_wifi()
+        check_wifi(wlan)
         check_free_memory()
 
 
