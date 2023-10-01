@@ -60,9 +60,22 @@ OTA_UPDATE_GITHUB_REPOS = {
 }
 
 
+def exc_print(msg):
+    """
+    Print for exceptions prior to a reset()
+
+    :param msg: The string to print
+    :type msg: str
+    :return: Nothing
+    :rtype: None
+    """
+    print(msg)
+    sys.stdout.flush()
+
+
 def debug_print(msg):
     """
-    A wrapper to only print when debug is enabled
+    A wrapper to print when debug is enabled
 
     :param msg: The message to print
     :type msg: str
@@ -71,6 +84,8 @@ def debug_print(msg):
     """
     if DEBUG:
         print(msg)
+        # Make sure output gets to the screen
+        sys.stdout.flush()
 
 
 def current_time_to_string():
@@ -97,7 +112,7 @@ def log_traceback(exception):
     sys.print_exception(exception, traceback_stream)
     traceback_file = current_time_to_string() + '-' + 'traceback.log'
     output = traceback_stream.getvalue()
-    print(output)
+    exc_print(output)
     with open(traceback_file, 'w') as f:
         f.write(output)
 
@@ -137,7 +152,7 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     """
     led = Pin("LED", Pin.OUT)
     led.off()
-    print("WIFI: Attempting network connection")
+    debug_print("WIFI: Attempting network connection")
     wlan.active(True)
     time.sleep(sleep_seconds_interval)
     counter = 1
@@ -147,11 +162,10 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
         time.sleep(sleep_seconds_interval)
         counter += 1
         if counter > connection_attempts:
-            print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
-            time.sleep(1)  # Gives the system time enough to print above msg to screen
+            exc_print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
             reset()
     led.on()
-    print("WIFI: Successfully connected to network")
+    exc_print("WIFI: Successfully connected to network")
 
 
 def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
@@ -204,8 +218,7 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
     time.sleep(interval)
     free = gc.mem_free()
     if free < min_memory:
-        print(f"MEM: Too little memory ({free}) to continue. Resetting.")
-        time.sleep(1)
+        exc_print(f"MEM: Too little memory ({free}) to continue. Resetting.")
         reset()
 
 
@@ -250,8 +263,7 @@ def main():
         ntptime.settime()
         debug_print("MAIN: System time set successfully.")
     except Exception as e:
-        print(f"MAIN: Error setting system time: {e}")
-        time.sleep(1)
+        exc_print(f"MAIN: Error setting system time: {e}")
         reset()
 
     debug_print("MAIN: set the ota timer")
@@ -263,8 +275,7 @@ def main():
 
     debug_print("MAIN: run update")
     if updater.updated():
-        print(f"MAIN: {current_time_to_string()} - Updates added. Resetting.")
-        time.sleep(1)
+        exc_print(f"MAIN: {current_time_to_string()} - Updates added. Resetting.")
         reset()
 
     debug_print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
@@ -273,15 +284,14 @@ def main():
     debug_print("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    print("MAIN: Starting event loop")
+    exc_print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
         try:
             mailbox.event_handler(mailbox_door_is_closed)
         except MailBoxNoMemory:
-            print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
-            time.sleep(1)
+            exc_print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
             reset()
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
@@ -292,8 +302,7 @@ def main():
                     time.sleep(1)
                     reset()
             except OTANoMemory:
-                print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory on update.")
-                time.sleep(1)
+                exc_print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory on update.")
                 reset()
             else:
                 ota_timer = time.time()
@@ -304,10 +313,9 @@ def main():
 
 if __name__ == "__main__":
     try:
-        print("Starting main")
         main()
     except Exception as exc:
-        print("-C R A S H-")
+        exc_print("-C R A S H-")
         log_traceback(exc)
         if max_reset_attempts_exceeded():
             #
