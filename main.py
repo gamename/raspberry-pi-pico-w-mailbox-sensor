@@ -261,14 +261,12 @@ def main():
 
     print("MAIN: If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
-    print("MAIN: updater instantiated")
     gc.collect()
+
     print("MAIN: run update")
     if updater.updated():
-        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
-        time.sleep(1)
         reset()
-    #
+
     print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
