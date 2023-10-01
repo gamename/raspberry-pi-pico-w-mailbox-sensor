@@ -56,7 +56,7 @@ class MailBoxStateMachine:
                 self.execute_actions()
 
             else:
-                print(f"MBSM: SHOULD NOT OCCUR state={self.state} and event={event}")
+                raise RuntimeError(f"MBSM: SHOULD NOT OCCUR state={self.state} and event={event}")
 
         elif event == 'closed' and self.state != 'closed':
             self.debug_print(f"MBSM: Event: {event} and State: {self.state}")
@@ -64,7 +64,7 @@ class MailBoxStateMachine:
             self.debug_print("MBSM: second 'closed'")
             self.execute_actions()
         else:
-            print(f"MBSM: Should not happen. state={self.state} and event={event}")
+            raise RuntimeError(f"MBSM: Should not happen. state={self.state} and event={event}")
 
     def execute_actions(self):
         if self.state == 'open':
@@ -86,7 +86,7 @@ class MailBoxStateMachine:
             self.throttle_events = False
 
         else:
-            print("MBSM: Should not happen")
+            raise RuntimeError("MBSM: Should not happen")
 
     def send_request(self, state):
         """
