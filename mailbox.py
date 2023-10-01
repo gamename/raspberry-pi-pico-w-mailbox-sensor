@@ -55,6 +55,7 @@ class MailBoxStateMachine:
         elif self.state == 'ajar':
             self.send_request('ajar')
             self.ajar_message_sent = True
+            self.throttle_events = True
 
         elif self.state == 'closed':
             if self.ajar_message_sent:
