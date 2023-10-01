@@ -62,7 +62,7 @@ OTA_UPDATE_GITHUB_REPOS = {
 
 def exc_print(msg):
     """
-    Print for exceptions prior to a reset()
+    Print for exceptions prior to a reset() and other important output
 
     :param msg: The string to print
     :type msg: str
@@ -70,7 +70,8 @@ def exc_print(msg):
     :rtype: None
     """
     print(msg)
-    sys.stdout.flush()
+    time.sleep(0.5)  # Gives it enough time to be IO to flushed
+
 
 
 def debug_print(msg):
@@ -84,8 +85,6 @@ def debug_print(msg):
     """
     if DEBUG:
         print(msg)
-        # Make sure output gets to the screen
-        sys.stdout.flush()
 
 
 def current_time_to_string():
