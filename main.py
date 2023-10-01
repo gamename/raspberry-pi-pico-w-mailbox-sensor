@@ -281,6 +281,7 @@ def main():
             reset()
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
+            print(current_time_to_string())
             gc.collect()
             try:
                 if updater.updated():
