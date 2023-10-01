@@ -61,17 +61,17 @@ class MailBoxStateMachine:
         elif event == 'open':
             if self.state == 'open':
                 self.state = 'ajar'
-                self.debug_print("MBSM: 'ajar'")
+                print("MBSM: 'ajar'")
                 self.execute_actions()
 
             elif self.state == 'ajar':
                 self.state = 'closed'
-                self.debug_print("MBSM: 'closed'")
+                print("MBSM: 'closed'")
                 self.execute_actions()
 
             elif self.state == 'closed':
                 self.state = 'open'
-                self.debug_print("MBSM: 'open'")
+                print("MBSM: 'open'")
                 self.execute_actions()
 
             else:
@@ -80,7 +80,7 @@ class MailBoxStateMachine:
         elif event == 'closed' and self.state != 'closed':
             self.debug_print(f"MBSM: Event: {event} and State: {self.state}")
             self.state = 'closed'
-            self.debug_print("MBSM: second 'closed'")
+            print("MBSM: second 'closed'")
             self.execute_actions()
         else:
             raise RuntimeError(f"MBSM: Should not happen. state={self.state} and event={event}")
