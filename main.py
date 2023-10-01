@@ -326,16 +326,16 @@ def request_wrapper(verb):
 
 def main():
     #
-    # Global variables suck. But they come in handy for state data.
+    print("Global variables suck. But they come in handy for state data.")
     global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
     #
-    # Enable automatic garbage collection
+    print("Enable automatic garbage collection")
     gc.enable()
     #
-    # Hostname is limited to 15 chars at present (grr)
+    print("Hostname is limited to 15 chars at present (grr)")
     network.hostname(secrets.HOSTNAME)
     #
-    # Explicitly turn OFF the access point interface
+    print("Explicitly turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
@@ -343,24 +343,29 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
-    # Sync system time with NTP
+    print("Sync system time with NTP")
     ntptime.settime()
 
+    print("set the ota timer")
     ota_timer = time.time()
     #
-    # If there are any OTA updates, pull them and reset the system if found
+    print("If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
+    print("updater intsantiated")
     gc.collect()
+    print("run update")
     ota_update()
 
     #
-    # Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed
+    print("Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    exponent = exponent_generator()
-    door_remains_ajar = False
-    ajar_message_sent = False
+    # exponent = exponent_generator()
+    # door_remains_ajar = False
+    # ajar_message_sent = False
 
+    print("Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL)
+
     print("MAIN: Starting event loop")
     while True:
         mailbox.event_handler(reed_switch.value())
