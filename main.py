@@ -246,9 +246,15 @@ def main():
     print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
-    #
+
     print("MAIN: Sync system time with NTP")
-    ntptime.settime()
+    try:
+        ntptime.settime()
+        print("MAIN: System time set successfully.")
+    except Exception as e:
+        print("MAIN: Error setting system time:", e)
+        time.sleep(1)
+        reset()
 
     print("MAIN: set the ota timer")
     ota_timer = time.time()
