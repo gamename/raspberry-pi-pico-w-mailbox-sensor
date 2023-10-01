@@ -15,6 +15,9 @@ class MailBoxNoMemory(Exception):
 
 
 class MailBoxStateMachine:
+    """
+    FIXME
+    """
     REQUEST_HEADER = {'content-type': 'application/json'}
 
     def __init__(self, request_url, state=True, wait_for_door_closure=60, minimum_memory=32000, debug=False):
@@ -27,10 +30,26 @@ class MailBoxStateMachine:
         self.debug = debug
 
     def debug_print(self, msg):
+        """
+        FIXME
+
+        :param msg:
+        :type msg:
+        :return:
+        :rtype:
+        """
         if self.debug:
             print(msg)
 
     def event_handler(self, door_closed):
+        """
+        FIXME
+
+        :param door_closed:
+        :type door_closed:
+        :return:
+        :rtype:
+        """
         event = 'closed' if door_closed else 'open'
 
         if event == 'closed' and self.state == 'closed':
@@ -67,6 +86,12 @@ class MailBoxStateMachine:
             raise RuntimeError(f"MBSM: Should not happen. state={self.state} and event={event}")
 
     def execute_actions(self):
+        """
+        FIXME
+
+        :return:
+        :rtype:
+        """
         if self.state == 'open':
             self.send_request('open')
             #
