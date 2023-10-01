@@ -26,29 +26,29 @@ class MailBoxStateMachine:
         elif event == 'open':
             if self.state == 'open':
                 self.state = 'ajar'
-                print("Run 'ajar' action")
+                print("MBSM: Run 'ajar' action")
                 self.execute_actions()
 
             elif self.state == 'ajar':
                 self.state = 'closed'
-                print("Run 'closed' actions")
+                print("MBSM: Run 'closed' actions")
                 self.execute_actions()
 
             elif self.state == 'closed':
                 self.state = 'open'
-                print("Run 'open' actions")
+                print("MBSM: Run 'open' actions")
                 self.execute_actions()
 
             else:
-                print(f"SHOULD NOT OCCUR state={self.state} and event={event}")
+                print(f"MBSM: SHOULD NOT OCCUR state={self.state} and event={event}")
 
         elif event == 'closed' and self.state != 'closed':
-            print(f"Event: {event} and State: {self.state}")
+            print(f"MBSM: Event: {event} and State: {self.state}")
             self.state = 'closed'
-            print("Run second 'closed' actions")
+            print("MBSM: Run second 'closed' actions")
             self.execute_actions()
         else:
-            print(f"Should not happen. state={self.state} and event={event}")
+            print(f"MBSM: Should not happen. state={self.state} and event={event}")
 
     def execute_actions(self):
         if self.state == 'open':
@@ -70,7 +70,7 @@ class MailBoxStateMachine:
             self.throttle_events = False
 
         else:
-            print("Should not happen")
+            print("MBSM: Should not happen")
 
     def send_request(self, state):
         """
