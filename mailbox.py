@@ -16,7 +16,7 @@ class MailBoxNoMemory(Exception):
 
 class MailBoxStateMachine:
     """
-    FIXME
+    This is a state machine to keep up with the status of the door on a USPS mailbox
     """
     REQUEST_HEADER = {'content-type': 'application/json'}
 
@@ -31,24 +31,29 @@ class MailBoxStateMachine:
 
     def debug_print(self, msg):
         """
-        FIXME
+        A special print that only works when debug is enabled
 
-        :param msg:
-        :type msg:
-        :return:
-        :rtype:
+        :param msg: The string to print
+        :type msg: str
+        :return: Nothing
+        :rtype: None
         """
         if self.debug:
             print(msg)
 
     def event_handler(self, door_closed):
         """
-        FIXME
+        The main event handler for the class. React to events and set the state accordingly.
 
-        :param door_closed:
-        :type door_closed:
-        :return:
-        :rtype:
+        There are 2 scenarios covered by the logic
+          1. If the door is opened and immediately closed, only the 'open' message is sent.
+          2. If left open, an 'ajar' messages is sent and then a 'closed' message when the
+          door is eventually closed.
+
+        :param door_closed: The door status event
+        :type door_closed: bool
+        :return: Nothing
+        :rtype: None
         """
         event = 'closed' if door_closed else 'open'
 
@@ -87,10 +92,10 @@ class MailBoxStateMachine:
 
     def execute_actions(self):
         """
-        FIXME
+        These are actions dictated by the current state
 
-        :return:
-        :rtype:
+        :return: Nothing
+        :rtype: None
         """
         if self.state == 'open':
             self.send_request('open')
