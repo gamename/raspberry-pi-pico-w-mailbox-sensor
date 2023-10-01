@@ -269,7 +269,7 @@ def main():
         ntptime.settime()
         debug_print("MAIN: System time set successfully.")
     except Exception as e:
-        print("MAIN: Error setting system time:", e)
+        print(f"MAIN: Error setting system time: {e}")
         time.sleep(1)
         reset()
 
@@ -282,6 +282,8 @@ def main():
 
     debug_print("MAIN: run update")
     if updater.updated():
+        print(f"MAIN: {current_time_to_string()} - Updates added. Resetting.")
+        time.sleep(1)
         reset()
 
     debug_print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
@@ -297,7 +299,7 @@ def main():
         try:
             mailbox.event_handler(mailbox_door_is_closed)
         except MailBoxNoMemory:
-            print("MAIN: Ran out of mailbox memory")
+            print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
             time.sleep(1)
             reset()
 
@@ -309,7 +311,7 @@ def main():
                     time.sleep(1)
                     reset()
             except OTANoMemory:
-                print("MAIN: Ran out of OTA memory on update.")
+                print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory on update.")
                 time.sleep(1)
                 reset()
             else:
