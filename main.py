@@ -27,6 +27,10 @@ import secrets
 from mailbox import MailBoxStateMachine, MailBoxNoMemory
 
 #
+# print debug messages
+DEBUG = True
+
+#
 # 'urequests' mem leak workaround. If we detect less than this amount
 # of memory, give up and reset the system
 MINIMUM_USABLE_MEMORY = 32000  # 32k
@@ -54,6 +58,19 @@ OTA_UPDATE_GITHUB_REPOS = {
     "gamename/micropython-over-the-air-utility": ["ota.py"],
     "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
+
+
+def debug_print(msg):
+    """
+    A wrapper to only print when debug is enabled
+
+    :param msg: The message to print
+    :type msg: str
+    :return: Nothing
+    :rtype: None
+    """
+    if DEBUG:
+        print(msg)
 
 
 def current_time_to_string():
@@ -120,21 +137,21 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     """
     led = Pin("LED", Pin.OUT)
     led.off()
-    print("WIFI: Attempting network connection")
+    debug_print("WIFI: Attempting network connection")
     wlan.active(True)
     time.sleep(sleep_seconds_interval)
     counter = 1
     wlan.connect(ssid, password)
     while not wlan.isconnected():
-        print(f'WIFI: Attempt {counter} of {connection_attempts}')
+        debug_print(f'WIFI: Attempt {counter} of {connection_attempts}')
         time.sleep(sleep_seconds_interval)
         counter += 1
         if counter > connection_attempts:
-            print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
+            debug_print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
             time.sleep(1)  # Gives the system time enough to print above msg to screen
             reset()
     led.on()
-    print("WIFI: Successfully connected to network")
+    debug_print("WIFI: Successfully connected to network")
 
 
 def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
@@ -167,7 +184,7 @@ def check_wifi(wlan):
     :rtype: None
     """
     if not wlan.isconnected():
-        print("MAIN: Restart network connection")
+        debug_print("MAIN: Restart network connection")
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
@@ -201,7 +218,7 @@ def ota_update(updater, ota_timer):
     """
     gc.collect()
     if updater.updated():
-        print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
+        debug_print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
         time.sleep(1)
         reset()
     else:
@@ -233,47 +250,47 @@ def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
 
 def main():
     #
-    print("MAIN: Enable automatic garbage collection")
+    debug_print("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    print("MAIN: Hostname is limited to 15 chars at present (grr)")
+    debug_print("MAIN: Hostname is limited to 15 chars at present (grr)")
     network.hostname(secrets.HOSTNAME)
     #
-    print("MAIN: Explicitly turn OFF the access point interface")
+    debug_print("MAIN: Explicitly turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
-    print("MAIN: Turn ON and connect the station interface")
+    debug_print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-    print("MAIN: Sync system time with NTP")
+    debug_print("MAIN: Sync system time with NTP")
     try:
         ntptime.settime()
-        print("MAIN: System time set successfully.")
+        debug_print("MAIN: System time set successfully.")
     except Exception as e:
         print("MAIN: Error setting system time:", e)
         time.sleep(1)
         reset()
 
-    print("MAIN: set the ota timer")
+    debug_print("MAIN: set the ota timer")
     ota_timer = time.time()
 
-    print("MAIN: If there are any OTA updates, pull them and reset the system if found")
-    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
+    debug_print("MAIN: If there are any OTA updates, pull them and reset the system if found")
+    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
     gc.collect()
 
-    print("MAIN: run update")
+    debug_print("MAIN: run update")
     if updater.updated():
         reset()
 
-    print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
+    debug_print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
-    print("MAIN: Instantiate the mailbox obj")
-    mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL)
+    debug_print("MAIN: Instantiate the mailbox obj")
+    mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    print("MAIN: Starting event loop")
+    debug_print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = reed_switch.value()
 
@@ -285,7 +302,7 @@ def main():
             reset()
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
-            print(current_time_to_string())
+            debug_print(current_time_to_string())
             gc.collect()
             try:
                 if updater.updated():

@@ -17,13 +17,18 @@ class MailBoxNoMemory(Exception):
 class MailBoxStateMachine:
     REQUEST_HEADER = {'content-type': 'application/json'}
 
-    def __init__(self, request_url, state=True, wait_for_door_closure=60, minimum_memory=32000):
+    def __init__(self, request_url, state=True, wait_for_door_closure=60, minimum_memory=32000, debug=False):
         self.request_url = request_url
         self.state = 'closed' if state else 'open'
         self.ajar_message_sent = False
         self.throttle_events = False
         self.wait_for_door_closure = wait_for_door_closure  # seconds
         self.minium_memory = minimum_memory
+        self.debug = debug
+
+    def debug_print(self, msg):
+        if self.debug:
+            print(msg)
 
     def event_handler(self, door_closed):
         event = 'closed' if door_closed else 'open'
@@ -37,26 +42,26 @@ class MailBoxStateMachine:
         elif event == 'open':
             if self.state == 'open':
                 self.state = 'ajar'
-                print("MBSM: Run 'ajar' action")
+                self.debug_print("MBSM: Run 'ajar' action")
                 self.execute_actions()
 
             elif self.state == 'ajar':
                 self.state = 'closed'
-                print("MBSM: Run 'closed' actions")
+                self.debug_print("MBSM: Run 'closed' actions")
                 self.execute_actions()
 
             elif self.state == 'closed':
                 self.state = 'open'
-                print("MBSM: Run 'open' actions")
+                self.debug_print("MBSM: Run 'open' actions")
                 self.execute_actions()
 
             else:
                 print(f"MBSM: SHOULD NOT OCCUR state={self.state} and event={event}")
 
         elif event == 'closed' and self.state != 'closed':
-            print(f"MBSM: Event: {event} and State: {self.state}")
+            self.debug_print(f"MBSM: Event: {event} and State: {self.state}")
             self.state = 'closed'
-            print("MBSM: Run second 'closed' actions")
+            self.debug_print("MBSM: Run second 'closed' actions")
             self.execute_actions()
         else:
             print(f"MBSM: Should not happen. state={self.state} and event={event}")
