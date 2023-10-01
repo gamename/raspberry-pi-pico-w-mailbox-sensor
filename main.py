@@ -267,8 +267,6 @@ def main():
     except OTANoMemory:
         print("MAIN: Updater ran out of memory. Disabling.")
         ota_update_enabled = False
-
-
     #
     print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)

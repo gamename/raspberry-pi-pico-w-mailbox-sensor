@@ -4,15 +4,26 @@ import time
 import urequests as requests
 
 
+class MailBoxNoMemory(Exception):
+    """
+    Due to a known mem leak issue in 'urequests', flag when we run into it.
+    """
+
+    def __init__(self, message="Insufficient memory to continue"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class MailBoxStateMachine:
     REQUEST_HEADER = {'content-type': 'application/json'}
 
-    def __init__(self, request_url, state=True, wait_for_door_closure=60):
+    def __init__(self, request_url, state=True, wait_for_door_closure=60, minimum_memory=32000):
         self.request_url = request_url
         self.state = 'closed' if state else 'open'
         self.ajar_message_sent = False
         self.throttle_events = False
         self.wait_for_door_closure = wait_for_door_closure  # seconds
+        self.minium_memory = minimum_memory
 
     def event_handler(self, door_closed):
         event = 'closed' if door_closed else 'open'
@@ -86,3 +97,5 @@ class MailBoxStateMachine:
         """
         requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
         gc.collect()
+        if gc.mem_free() < self.minium_memory:
+            raise MailBoxNoMemory()
