@@ -280,7 +280,7 @@ def main():
             time.sleep(1)
             reset()
 
-        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed and ota_update_enabled:
+        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
             gc.collect()
             try:
                 if updater.updated():
