@@ -243,7 +243,7 @@ def main():
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
-    # Turn ON and connect the station interface
+    print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
