@@ -26,8 +26,6 @@ from ota import OTAUpdater
 import secrets
 from mailbox import MailBoxStateMachine
 
-global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
-
 #
 # 'urequests' mem leak workaround. If we detect less than this amount
 # of memory, give up and reset the system
@@ -139,33 +137,6 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
     print("WIFI: Successfully connected to network")
 
 
-def door_is_closed(monitor_minutes) -> bool:
-    """
-    Monitor a door's reed switch for a specified period. Return whether
-    the door has been closed during that time.
-
-    :param reed_switch: A reed switch handle
-    :param monitor_minutes: how long to delay before we return
-    :return: True if door closed, False otherwise
-    """
-    global reed_switch
-    print(f'DCLOSE: Pausing up to {monitor_minutes} minutes for door to close')
-    state_counter = 0
-    is_closed = False
-    while state_counter < monitor_minutes:
-        if reed_switch.value():
-            print("DCLOSE: Door CLOSED")
-            is_closed = True
-            break
-        else:
-            state_counter += 1
-            time.sleep(60)
-    if not is_closed:
-        print("DCLOSE: Door remains open")
-    print(f"DCLOSE: Free memory: {gc.mem_free()}")
-    return is_closed
-
-
 def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
     """
     Determine when to stop trying to reset the system when exceptions are
@@ -186,17 +157,6 @@ def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWE
     return bool(log_file_count > max_exception_resets)
 
 
-def exponent_generator(base=3):
-    """
-    Generate powers of a given base value
-
-    :param base: The base value (e.g. 3)
-    :return: The next exponent value
-    """
-    for i in range(1, 100):
-        yield base ** i
-
-
 def check_wifi():
     """
     Simple function to re-establish a Wi-Fi connection if needed
@@ -206,7 +166,6 @@ def check_wifi():
     :return: Nothing
     :rtype: None
     """
-    global wlan
     if not wlan.isconnected():
         print("MAIN: Restart network connection")
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
@@ -233,14 +192,13 @@ def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
         reset()
 
 
-def ota_update():
+def ota_update(updater, ota_timer):
     """
     If there are OTA updates, pull them and restart the system.
 
     :return: Nothing
     :rtype: None
     """
-    global ota_timer, updater
     gc.collect()
     if updater.updated():
         print(f"UPDATE: Free mem after updates: {gc.mem_free()}. Now resetting.")
@@ -250,18 +208,22 @@ def ota_update():
         gc.collect()
         ota_timer = time.time()
 
+    return ota_timer
 
-def ota_update_interval_exceeded(interval=OTA_CHECK_TIMER):
+
+def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
     """
     Determine if we have waited long enough to check for OTA
     file updates.
 
+
+    :param ota_timer: Timestamp to compare against
+    :type ota_timer: int
     :param interval: What is the max wait time? Defaults to 600 seconds (10 min)
     :type interval: int
     :return: True or False
     :rtype: bool
     """
-    global ota_timer
     exceeded = False
     ota_elapsed = int(time.time() - ota_timer)
     if ota_elapsed > interval:
@@ -269,73 +231,15 @@ def ota_update_interval_exceeded(interval=OTA_CHECK_TIMER):
     return exceeded
 
 
-def check_mailbox():
-    """
-    Check the status of the mailbox.
-
-    There are 2 scenarios covered by the logic
-
-      1. If the door is opened and immediately closed, only the 'open'
-    message is sent.
-
-      2. If left open, an 'ajar' messages is sent and then a 'closed'
-    message when the door is eventually closed.
-
-    :return: Nothing
-    :rtype: None
-    """
-    global exponent, door_remains_ajar, ajar_message_sent, reed_switch
-
-    if door_remains_ajar:
-        print("MAILBOX: Sending ajar msg")
-        request_wrapper('ajar')
-        ajar_message_sent = True
-    else:
-        print("MAILBOX: Door open. Sending initial msg")
-        request_wrapper('open')
-        door_remains_ajar = True
-
-    # Wait for the door to close. Use longer and longer delays by using
-    # exponent values. The result will be progressively longer intervals
-    # between door 'ajar' messages.
-    if door_is_closed(monitor_minutes=next(exponent)):
-        if ajar_message_sent:
-            print("MAILBOX: Sending final closed msg")
-            request_wrapper('closed')
-            ajar_message_sent = False
-        door_remains_ajar = False
-        exponent = exponent_generator()
-
-
-def request_wrapper(verb):
-    """
-    There is a mem leak bug in 'urequests'. Clean up memory as much as possible on
-    every request call
-
-    https://github.com/micropython/micropython-lib/issues/741
-
-    :param verb: The state of the mailbox
-    :type verb: string
-    :return: Nothing
-    :rtype: None
-    """
-    check_free_memory()
-    requests.post(secrets.REST_API_URL + verb, headers=REQUEST_HEADER)
-    gc.collect()
-
-
 def main():
     #
-    print("Global variables suck. But they come in handy for state data.")
-    global exponent, door_remains_ajar, ajar_message_sent, reed_switch, ota_timer, wlan, updater
-    #
-    print("Enable automatic garbage collection")
+    print("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    print("Hostname is limited to 15 chars at present (grr)")
+    print("MAIN: Hostname is limited to 15 chars at present (grr)")
     network.hostname(secrets.HOSTNAME)
     #
-    print("Explicitly turn OFF the access point interface")
+    print("MAIN: Explicitly turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
@@ -343,34 +247,43 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
     #
-    print("Sync system time with NTP")
+    print("MAIN: Sync system time with NTP")
     ntptime.settime()
 
-    print("set the ota timer")
+    print("MAIN: set the ota timer")
     ota_timer = time.time()
     #
-    print("If there are any OTA updates, pull them and reset the system if found")
+    print("MAIN: If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS)
-    print("updater intsantiated")
+    print("MAIN: updater instantiated")
     gc.collect()
-    print("run update")
-    ota_update()
+    print("MAIN: run update")
+    if updater.updated():
+        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
+        time.sleep(1)
+        reset()
 
     #
-    print("Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
+    print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
-    # exponent = exponent_generator()
-    # door_remains_ajar = False
-    # ajar_message_sent = False
 
-    print("Instantiate the mailbox obj")
+    print("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL)
 
     print("MAIN: Starting event loop")
     while True:
-        mailbox.event_handler(reed_switch.value())
-        if ota_update_interval_exceeded():
-            ota_update()
+        mailbox_door_is_closed = reed_switch.value()
+
+        mailbox.event_handler(mailbox_door_is_closed)
+
+        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
+            gc.collect()
+            if updater.updated():
+                time.sleep(1)
+                reset()
+            else:
+                ota_timer = time.time()
+
         check_wifi()
         check_free_memory()
 
