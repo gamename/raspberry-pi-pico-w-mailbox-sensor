@@ -73,7 +73,6 @@ def exc_print(msg):
     time.sleep(0.5)  # Gives it enough time to be IO to flushed
 
 
-
 def debug_print(msg):
     """
     A wrapper to print when debug is enabled
@@ -285,7 +284,7 @@ def main():
 
     exc_print("MAIN: Starting event loop")
     while True:
-        mailbox_door_is_closed = reed_switch.value()
+        mailbox_door_is_closed = bool(reed_switch.value())
 
         try:
             mailbox.event_handler(mailbox_door_is_closed)
