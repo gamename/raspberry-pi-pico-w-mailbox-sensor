@@ -21,7 +21,7 @@ import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
-from ota import OTAUpdater
+from ota import OTAUpdater, OTANoMemory
 
 import secrets
 from mailbox import MailBoxStateMachine
@@ -232,6 +232,7 @@ def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
 
 
 def main():
+    ota_update_enabled = True
     #
     print("MAIN: Enable automatic garbage collection")
     gc.enable()
@@ -258,10 +259,15 @@ def main():
     print("MAIN: updater instantiated")
     gc.collect()
     print("MAIN: run update")
-    if updater.updated():
-        print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
-        time.sleep(1)
-        reset()
+    try:
+        if updater.updated():
+            print(f"MAIN: Free mem after updates: {gc.mem_free()}. Now resetting.")
+            time.sleep(1)
+            reset()
+    except OTANoMemory:
+        print("MAIN: Updater ran out of memory. Disabling.")
+        ota_update_enabled = False
+
 
     #
     print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
@@ -276,11 +282,15 @@ def main():
 
         mailbox.event_handler(mailbox_door_is_closed)
 
-        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
+        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed and ota_update_enabled:
             gc.collect()
-            if updater.updated():
-                time.sleep(1)
-                reset()
+            try:
+                if updater.updated():
+                    time.sleep(1)
+                    reset()
+            except OTANoMemory:
+                print("MAIN: Ran out of memory on update. Disabling updates")
+                ota_update_enabled = False
             else:
                 ota_timer = time.time()
 
