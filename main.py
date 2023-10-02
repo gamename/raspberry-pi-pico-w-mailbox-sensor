@@ -362,7 +362,6 @@ def main():
             gc.collect()
             try:
                 if updater.updated():
-                    time.sleep(1)
                     reset()
             except OTANoMemory:
                 exc_print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory on update.")
