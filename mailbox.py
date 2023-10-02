@@ -91,12 +91,12 @@ class MailBoxStateMachine:
     def handle_throttled_events(self):
         if self.state == 'ajar' and self.ajar_timer_expired():
             print("MBSM: 'ajar' update")
-            self.execute_ajar_actions()
+            self.execute_ajar_state_actions()
 
     def handle_closed_events(self):
         self.state = 'closed'
         print("MBSM: second 'closed'")
-        self.execute_closed_actions()
+        self.execute_closed_state_actions()
 
     def handle_open_events(self):
         """
@@ -108,22 +108,22 @@ class MailBoxStateMachine:
         if self.state == 'open':
             self.state = 'ajar'
             print("MBSM: 'ajar'")
-            self.execute_ajar_actions()
+            self.execute_ajar_state_actions()
 
         elif self.state == 'ajar':
             self.state = 'closed'
             print("MBSM: 'closed'")
-            self.execute_closed_actions()
+            self.execute_closed_state_actions()
 
         elif self.state == 'closed':
             self.state = 'open'
             print("MBSM: 'open'")
-            self.execute_open_actions()
+            self.execute_open_state_actions()
 
         else:
             raise RuntimeError(f"MBSM: SHOULD NOT OCCUR state={self.state}")
 
-    def execute_ajar_actions(self):
+    def execute_ajar_state_actions(self):
         """
         Handle the actions for the 'ajar' state (i.e. the door is left open).
 
@@ -144,7 +144,7 @@ class MailBoxStateMachine:
         if not self.throttle_events:
             self.throttle_events = True
 
-    def execute_closed_actions(self):
+    def execute_closed_state_actions(self):
         """
         Actions for the 'closed' state.
 
@@ -157,7 +157,7 @@ class MailBoxStateMachine:
             self.exponent_generator = exponent_generator(self.backoff_timer_base)
         self.throttle_events = False
 
-    def execute_open_actions(self):
+    def execute_open_state_actions(self):
         """
         Handle the actions for the 'open' state
 
