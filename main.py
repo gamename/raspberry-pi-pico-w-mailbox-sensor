@@ -317,9 +317,6 @@ def main():
     debug_print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
-    #
-    exc_print(f"MAIN: There are {get_log_count()} traceback logs present")
-    purge_old_log_files()
 
     debug_print("MAIN: Sync system time with NTP")
     try:
@@ -331,7 +328,10 @@ def main():
 
     debug_print("MAIN: set the ota timer")
     ota_timer = time.time()
-
+    #
+    exc_print(f"MAIN: There are {get_log_count()} traceback logs present")
+    purge_old_log_files()
+    #
     debug_print("MAIN: If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
     gc.collect()
