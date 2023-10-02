@@ -1,4 +1,6 @@
 import gc
+import json
+import math
 import time
 
 import urequests as requests
@@ -14,36 +16,51 @@ class MailBoxNoMemory(Exception):
         super().__init__(self.message)
 
 
-def exponent_generator(base=3):
+def exponent_generator(base=3, start=4):
     """
-    Generate powers of a given base value
+    Generate powers of a given base value. Start the range of exponents at
+    a fairly high value to spread out the notifications.
 
+    :param start: The starting value for the range of exponents
+    :type start: int
     :param base: The base value (e.g. 3)
+    :type base: int
     :return: The next exponent value
+    :return type: int
     """
-    for i in range(1, 100):
+    for i in range(start, 100):
         yield base ** i
 
 
 class MailBoxStateMachine:
     """
     This is a state machine to keep up with the status of the door on a USPS mailbox
+
+    FIXME - describe the states and how we get to/from there
+
     """
     REQUEST_HEADER = {'content-type': 'application/json'}
 
-    def __init__(self, request_url, state=True, wait_for_door_closure=60, minimum_memory=32000,
-                 backoff_timer_base=3, debug=False):
+    def __init__(self, request_url, state='closed', quick_door_close_timer=60, minimum_memory=32000,
+                 backoff_timer_base=3, backoff_timer_range_start=4, state_file='mailbox_state.json',
+                 debug=False):
+        self.state_file = state_file
         self.request_url = request_url
-        self.backoff_timer_base = backoff_timer_base
-        self.state = 'closed' if state else 'open'
+        self.state = state
         self.ajar_message_sent = False
         self.throttle_events = False
-        self.wait_for_door_closure = wait_for_door_closure  # seconds
-        self.exponent_generator = exponent_generator(self.backoff_timer_base)
-        self.current_exponent_seconds = None
+        self.quick_door_close_timer = quick_door_close_timer  # seconds
         self.ajar_timestamp = None
         self.minium_memory = minimum_memory
         self.debug = debug
+        #
+        # Create an exponentially longer and longer time value to wait between notifications
+        # in the 'ajar' state (i.e. a backoff timer)
+        self.backoff_timer_base = backoff_timer_base
+        self.backoff_timer_range_start = backoff_timer_range_start
+        self.exponent_generator = exponent_generator(self.backoff_timer_base, self.backoff_timer_range_start)
+        self.current_exponent_value = None
+        self.current_backoff_timer_seconds = None
 
     def debug_print(self, msg):
         """
@@ -136,9 +153,9 @@ class MailBoxStateMachine:
         """
         self.send_request('ajar')
         self.ajar_timestamp = time.time()
-        exponent = next(self.exponent_generator)
-        self.current_exponent_seconds = exponent * 60
-        self.debug_print(f"MBSM: Ajar timer reset. Will send another SMS msg in {exponent} minutes")
+        self.current_exponent_value = next(self.exponent_generator)
+        self.current_backoff_timer_seconds = self.current_exponent_value * 60
+        self.debug_print(f"MBSM: Ajar timer reset. Will send another SMS msg in {self.current_exponent_value} minutes")
         if not self.ajar_message_sent:
             self.ajar_message_sent = True
         if not self.throttle_events:
@@ -154,7 +171,7 @@ class MailBoxStateMachine:
         if self.ajar_message_sent:
             self.send_request('closed')
             self.ajar_message_sent = False
-            self.exponent_generator = exponent_generator(self.backoff_timer_base)
+            self.exponent_generator = exponent_generator(self.backoff_timer_base, self.backoff_timer_range_start)
         self.throttle_events = False
 
     def execute_open_state_actions(self):
@@ -166,9 +183,23 @@ class MailBoxStateMachine:
         """
         self.send_request('open')
         #
-        # Most of the time, the door is opened and closed quickly.
-        # Give it time for that to happen.
-        time.sleep(self.wait_for_door_closure)
+        # Most of the time, the door is opened and closed quickly. Pause
+        # for that to happen
+        time.sleep(self.quick_door_close_timer)
+
+    def save_state(self):
+        if self.state == 'ajar':
+            data = {
+                "state": self.state,
+                "exponent": math.log(self.current_exponent_value, self.backoff_timer_base),
+                "message_sent": self.ajar_message_sent,
+                "throttle": self.throttle_events
+            }
+        else:
+            data = {"state": self.state}
+
+        with open(self.state_file, 'w') as json_file:
+            json.dump(data, json_file)
 
     def send_request(self, state):
         """
@@ -202,6 +233,6 @@ class MailBoxStateMachine:
         """
         expired = False
         elapsed = int(time.time() - self.ajar_timestamp)
-        if elapsed > self.current_exponent_seconds:
+        if elapsed > self.current_backoff_timer_seconds:
             expired = True
         return expired
