@@ -77,7 +77,7 @@ def get_file_age(filename):
 
     age_hours = (age_seconds % 86400) // 3600  # Number of seconds in an hour
 
-    print(f"AGE: The file {filename} is {age_hours} old")
+    print(f"AGE: The file {filename} is {age_hours} hours old")
 
     return int(age_hours)
 
