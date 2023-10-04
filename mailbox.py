@@ -214,7 +214,8 @@ class MailBoxStateMachine:
         :rtype: None
         """
         try:
-            requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+            resp = requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+            resp.close()
         except OSError:
             raise MailBoxNoMemory()
         except MemoryError:

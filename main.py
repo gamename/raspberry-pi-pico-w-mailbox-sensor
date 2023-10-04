@@ -49,7 +49,7 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 
 #
 # How often should we check for OTA updates?
-OTA_CHECK_TIMER = 14400  # seconds (4hrs)
+OTA_CHECK_TIMER = 300  # seconds (4hrs)
 
 #
 # Files we want to update over-the-air (OTA)
@@ -383,7 +383,8 @@ if __name__ == "__main__":
             #
             # Yes, this is a gamble. If the crash happens at the wrong time,
             # the below request is a waste of time. But...its worth a try.
-            requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
+            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
+            resp.close()
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
         else:
             reset()
