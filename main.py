@@ -46,7 +46,7 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 
 #
 # How often should we check for OTA updates?
-OTA_CHECK_TIMER = 14400  # seconds (4hrs)
+OTA_CHECK_TIMER = 300  # seconds (4hrs)
 
 #
 # Files we want to update over-the-air (OTA)
@@ -166,6 +166,7 @@ def log_traceback(exception):
     time.sleep(0.5)
     with open(traceback_file, 'w') as f:
         f.write(output)
+    return output
 
 
 def flash_led(count=100, interval=0.25):
@@ -344,6 +345,8 @@ def main():
                 ota_timer = time.time()
 
         check_wifi(wlan)
+        # force crash
+        x = 0 / 0
 
 
 if __name__ == "__main__":
@@ -351,9 +354,16 @@ if __name__ == "__main__":
         main()
     except Exception as exc:
         print("-C R A S H-")
-        log_traceback(exc)
+        tb_msg = log_traceback(exc)
         if max_reset_attempts_exceeded():
-            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
+            # We cannot send every traceback since that would be a problem
+            # in a crash loop. But we can send the last traceback. It will
+            # probably be a good clue.
+            traceback_data = {
+                "machine": secrets.HOSTNAME,
+                "traceback": tb_msg
+            }
+            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=traceback_data, headers=REQUEST_HEADER)
             resp.close()
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
         else:
