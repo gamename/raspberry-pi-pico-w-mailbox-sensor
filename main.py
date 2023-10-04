@@ -59,6 +59,10 @@ OTA_UPDATE_GITHUB_REPOS = {
     "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
 }
 
+#
+# Max amount of time we will keep a tracelog (in hours)
+TRACE_LOG_MAX_KEEP_TIME = 48
+
 
 def get_file_age(filename):
     """
@@ -82,7 +86,7 @@ def get_file_age(filename):
     return int(age_hours)
 
 
-def purge_old_log_files(max_age=48):
+def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
     """
     Get rid of old traceback files based on their age
 
@@ -96,8 +100,8 @@ def purge_old_log_files(max_age=48):
     files = os.listdir()
     for file in files:
         if file.endswith('.log') and get_file_age(file) > max_age:
+            print(f"DEL: Deleting {file}")
             os.remove(file)
-            print(f"DEL: Deleted: {file}")
             del_count += 1
             if not deletions:
                 deletions = True
