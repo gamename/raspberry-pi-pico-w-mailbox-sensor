@@ -13,6 +13,7 @@ Wiring
 """
 
 import gc
+import json
 import os
 import sys
 import time
@@ -363,7 +364,7 @@ if __name__ == "__main__":
                 "machine": secrets.HOSTNAME,
                 "traceback": tb_msg
             }
-            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=traceback_data, headers=REQUEST_HEADER)
+            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=json.dumps(traceback_data), headers=REQUEST_HEADER)
             resp.close()
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
         else:
