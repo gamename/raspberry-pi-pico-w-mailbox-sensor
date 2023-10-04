@@ -30,17 +30,12 @@ from mailbox import MailBoxStateMachine, MailBoxNoMemory
 # print debug messages
 DEBUG = False
 
-#
-# 'urequests' mem leak workaround. If we detect less than this amount
-# of memory, give up and reset the system
-MINIMUM_USABLE_MEMORY = 32000  # 32k
-
 # Crash loop detector. If we crash more than 3 times,
 # give up restarting the system
 MAX_EXCEPTION_RESETS_ALLOWED = 3
 
 #
-# Reed switch pin to detect mailbox door open
+# Reed switch pin to detect mailbox door state
 CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 
 #
@@ -81,7 +76,7 @@ def get_file_age(filename):
 
     age_hours = (age_seconds % 86400) // 3600  # Number of seconds in an hour
 
-    print(f"AGE: The file {filename} is {age_hours} hours old")
+    debug_print(f"FAGE: The file {filename} is {age_hours} hours old")
 
     return int(age_hours)
 
@@ -98,17 +93,19 @@ def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
     deletions = False
     del_count = 0
     files = os.listdir()
+    debug_print(f"PURG: Purging trace logs over {max_age} hours old")
     for file in files:
-        if file.endswith('.log') and get_file_age(file) > max_age:
-            print(f"DEL: Deleting {file}")
+        age = get_file_age(file)
+        if file.endswith('.log') and age > max_age:
+            debug_print(f"PURG: File {file} is {age} hours old. Deleting")
             os.remove(file)
             del_count += 1
             if not deletions:
                 deletions = True
     if deletions:
-        print(f"DEL: Deleted {del_count} logs")
+        debug_print(f"PURG: Deleted {del_count} trace logs")
     else:
-        print("DEL: No log files deleted")
+        debug_print("PURG: No trace log files deleted")
 
 
 def get_log_count():
@@ -354,9 +351,6 @@ if __name__ == "__main__":
         print("-C R A S H-")
         log_traceback(exc)
         if max_reset_attempts_exceeded():
-            #
-            # Yes, this is a gamble. If the crash happens at the wrong time,
-            # the below request cannot be sent. But, it is worth a try.
             resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
             resp.close()
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
