@@ -1,3 +1,32 @@
+"""
+This is a class which describes the status of a USPS mailbox - specifically when the door is opened and closed.
+
+State Diagram:
+
+- Initial State: Closed
+- States: Closed, Ajar, Opened
+- Events: Open, Close
+
+Transitions:
+
+1. Closed -> Opened (On receiving an Open event)
+2. Opened -> Ajar (If no Close event is received within 2 minutes)
+3. Opened -> Closed (On receiving a Close event)
+4. Ajar -> Closed (On receiving a Close event)
+
+Description:
+
+- The FSM starts in the Closed state, indicating that the mailbox door is closed.
+- When an Open event is received, it transitions to the Opened state, indicating that the mailbox door is open.
+- In the Opened state, if no Close event is received within 2 minutes, it transitions to the Ajar state,
+  signifying that the door has been open for an extended period without closing.
+- When a Close event is received in the Opened state, it transitions back to the Closed state, indicating
+  that the mailbox door is closed.
+- In the Ajar state, when a Close event is received, it transitions back to the Closed state, indicating
+  that the mailbox door is closed.
+- This cycle repeats indefinitely as Open and Close events are received.
+
+"""
 import gc
 import json
 import math
@@ -35,9 +64,6 @@ def exponent_generator(base=3, start=4):
 class MailBoxStateMachine:
     """
     This is a state machine to keep up with the status of the door on a USPS mailbox
-
-    FIXME - describe the states and how we get to/from there
-
     """
     REQUEST_HEADER = {'content-type': 'application/json'}
 
@@ -79,7 +105,7 @@ class MailBoxStateMachine:
         The main event handler for the class. React to events and set the state accordingly.
 
         There are 2 scenarios covered by the logic
-          1. If the door is opened and immediately closed, only the 'open' message is sent.
+          1. If the door is opened and immediately closed, only the 'opened' message is sent.
           2. If left open, 'ajar' messages are periodically sent and then a 'closed' message
           when the door is eventually closed.
 
@@ -88,15 +114,15 @@ class MailBoxStateMachine:
         :return: Nothing
         :rtype: None
         """
-        event = 'closed' if door_closed else 'open'
+        event = 'closed' if door_closed else 'opened'
 
         if event == 'closed' and self.state == 'closed':
             return
 
-        elif event == 'open' and self.throttle_events:
+        elif event == 'opened' and self.throttle_events:
             self.handle_throttled_events()
 
-        elif event == 'open':
+        elif event == 'opened':
             self.handle_open_events()
 
         elif event == 'closed' and self.state != 'closed':
@@ -117,12 +143,12 @@ class MailBoxStateMachine:
 
     def handle_open_events(self):
         """
-        Handle the permutations of 'open' events
+        Handle the permutations of 'opened' events
 
         :return: Nothing
         :rtype: None
         """
-        if self.state == 'open':
+        if self.state == 'opened':
             self.state = 'ajar'
             print("MBSM: 'ajar'")
             self.execute_ajar_state_actions()
@@ -133,8 +159,8 @@ class MailBoxStateMachine:
             self.execute_closed_state_actions()
 
         elif self.state == 'closed':
-            self.state = 'open'
-            print("MBSM: 'open'")
+            self.state = 'opened'
+            print("MBSM: 'opened'")
             self.execute_open_state_actions()
 
         else:
@@ -176,7 +202,7 @@ class MailBoxStateMachine:
 
     def execute_open_state_actions(self):
         """
-        Handle the actions for the 'open' state
+        Handle the actions for the 'opened' state
 
         :return: Nothing
         :rtype:  None
