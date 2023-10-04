@@ -6,6 +6,8 @@ Wiring
     Pico W                                Reed Switch
     ------                                -----------
     3v3 (Physical pin #36) -------------> common
+                                            |
+                                            |
     GPIO Pin #22 (Physical Pin #29) <---- normally open
 
 """
