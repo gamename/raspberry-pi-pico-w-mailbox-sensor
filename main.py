@@ -46,7 +46,7 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 
 #
 # How often should we check for OTA updates?
-OTA_CHECK_TIMER = 300  # seconds (4hrs)
+OTA_CHECK_TIMER = 14400  # seconds (4hrs)
 
 #
 # Files we want to update over-the-air (OTA)
