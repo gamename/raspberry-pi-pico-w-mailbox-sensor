@@ -277,7 +277,7 @@ def main():
     debug_print("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    debug_print("MAIN: Hostname is limited to 15 chars at present (grr)")
+    debug_print("MAIN: Set Hostname. Limited to 15 chars at present (grr)")
     network.hostname(secrets.HOSTNAME)
     #
     debug_print("MAIN: Explicitly turn OFF the access point interface")
@@ -304,10 +304,10 @@ def main():
     purge_old_log_files()
     #
     debug_print("MAIN: If there are any OTA updates, pull them and reset the system if found")
-    updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
+    ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
 
     debug_print("MAIN: run OTA update")
-    if updater.updated():
+    if ota_updater.updated():
         print(f"MAIN: {current_time_to_string()} - OTA updates added. Resetting.")
         time.sleep(0.5)
         reset()
@@ -332,7 +332,7 @@ def main():
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
             debug_print(current_time_to_string())
             try:
-                if updater.updated():
+                if ota_updater.updated():
                     reset()
             except OTANoMemory:
                 print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory.")
