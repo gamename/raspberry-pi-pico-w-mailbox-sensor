@@ -346,8 +346,6 @@ def main():
                 ota_timer = time.time()
 
         check_wifi(wlan)
-        # force crash
-        x = 0 / 0
 
 
 if __name__ == "__main__":
