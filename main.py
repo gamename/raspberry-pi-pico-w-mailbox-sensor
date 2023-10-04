@@ -8,7 +8,7 @@ Wiring
     3v3 (Physical pin #36) -------------> common
                                             |
                                             |
-    GPIO Pin #22 (Physical Pin #29) <---- normally open
+    GPIO Pin #22 (Physical Pin #29) <---- normally closed
 
 """
 
