@@ -122,19 +122,6 @@ def get_log_count():
     return count
 
 
-def exc_print(msg):
-    """
-    Print for exceptions prior to a reset() and other important output
-
-    :param msg: The string to print
-    :type msg: str
-    :return: Nothing
-    :rtype: None
-    """
-    print(msg)
-    time.sleep(0.5)  # Gives it enough time to be IO to flushed
-
-
 def debug_print(msg):
     """
     A wrapper to print when debug is enabled
@@ -172,7 +159,8 @@ def log_traceback(exception):
     sys.print_exception(exception, traceback_stream)
     traceback_file = current_time_to_string() + '-' + 'traceback.log'
     output = traceback_stream.getvalue()
-    exc_print(output)
+    print(output)
+    time.sleep(0.5)
     with open(traceback_file, 'w') as f:
         f.write(output)
 
@@ -222,10 +210,11 @@ def wifi_connect(wlan, ssid, password, connection_attempts=10, sleep_seconds_int
         time.sleep(sleep_seconds_interval)
         counter += 1
         if counter > connection_attempts:
-            exc_print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
+            print("WIFI: Max connection attempts exceeded. Resetting microcontroller")
+            time.sleep(0.5)
             reset()
     led.on()
-    exc_print("WIFI: Successfully connected to network")
+    print("WIFI: Successfully connected to network")
 
 
 def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWED):
@@ -260,26 +249,6 @@ def check_wifi(wlan):
     if not wlan.isconnected():
         debug_print("MAIN: Restart network connection")
         wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
-
-
-def check_free_memory(min_memory=MINIMUM_USABLE_MEMORY, interval=3):
-    """
-    This sucks. There is a memory leak in urequests. Rather than run
-    until we crash, closely monitor our memory consumption and force
-    a reset when we run low. By forcing a reset, we do NOT create
-    traceback logs which will trigger the crash loop detector.
-
-    https://github.com/micropython/micropython-lib/issues/741
-
-    :return: Nothing
-    :rtype: None
-    """
-    gc.collect()
-    time.sleep(interval)
-    free = gc.mem_free()
-    if free < min_memory:
-        exc_print(f"MEM: Too little memory ({free}) to continue. Resetting.")
-        reset()
 
 
 def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
@@ -323,22 +292,23 @@ def main():
         ntptime.settime()
         debug_print("MAIN: System time set successfully.")
     except Exception as e:
-        exc_print(f"MAIN: Error setting system time: {e}")
+        print(f"MAIN: Error setting system time: {e}")
+        time.sleep(0.5)
         reset()
 
-    debug_print("MAIN: set the ota timer")
+    debug_print("MAIN: set the OTA update timer")
     ota_timer = time.time()
     #
-    exc_print(f"MAIN: There are {get_log_count()} traceback logs present")
+    print(f"MAIN: There are {get_log_count()} traceback logs present")
     purge_old_log_files()
     #
     debug_print("MAIN: If there are any OTA updates, pull them and reset the system if found")
     updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
-    gc.collect()
 
-    debug_print("MAIN: run update")
+    debug_print("MAIN: run OTA update")
     if updater.updated():
-        exc_print(f"MAIN: {current_time_to_string()} - Updates added. Resetting.")
+        print(f"MAIN: {current_time_to_string()} - OTA updates added. Resetting.")
+        time.sleep(0.5)
         reset()
 
     debug_print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
@@ -347,42 +317,42 @@ def main():
     debug_print("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    exc_print("MAIN: Starting event loop")
+    print("MAIN: Starting event loop")
     while True:
         mailbox_door_is_closed = bool(reed_switch.value())
 
         try:
             mailbox.event_handler(mailbox_door_is_closed)
         except MailBoxNoMemory:
-            exc_print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
+            print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
+            time.sleep(0.5)
             reset()
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
             debug_print(current_time_to_string())
-            gc.collect()
             try:
                 if updater.updated():
                     reset()
             except OTANoMemory:
-                exc_print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory on update.")
+                print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory.")
+                time.sleep(0.5)
                 reset()
             else:
                 ota_timer = time.time()
 
         check_wifi(wlan)
-        check_free_memory()
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        exc_print("-C R A S H-")
+        print("-C R A S H-")
         log_traceback(exc)
         if max_reset_attempts_exceeded():
             #
             # Yes, this is a gamble. If the crash happens at the wrong time,
-            # the below request is a waste of time. But...its worth a try.
+            # the below request cannot be sent. But, it is worth a try.
             resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=secrets.HOSTNAME, headers=REQUEST_HEADER)
             resp.close()
             flash_led(3000, 3)  # slow flashing for about 2.5 hours
