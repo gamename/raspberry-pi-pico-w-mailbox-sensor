@@ -1,30 +1,33 @@
 """
-This is a class which describes the status of a USPS mailbox - specifically when the door is opened and closed.
+This is a state machine class which describes the states of a (snail) mailbox.
 
 State Diagram:
 
-- Initial State: Closed
-- States: Closed, Ajar, Opened
-- Events: Open, Close
+  - Initial State: Closed
+  - States: Closed, Ajar, Opened
+  - Events: Open, Close
 
 Transitions:
 
-1. Closed -> Opened (On receiving an Open event)
-2. Opened -> Ajar (If no Close event is received within 2 minutes)
-3. Opened -> Closed (On receiving a Close event)
-4. Ajar -> Closed (On receiving a Close event)
+  1. Closed -> Opened (On receiving an Open event)
+  2. Opened -> Ajar (If no Close event is received within 2 minutes)
+  3. Opened -> Closed (On receiving a Close event)
+  4. Ajar -> Closed (On receiving a Close event)
 
 Description:
 
-- The FSM starts in the Closed state, indicating that the mailbox door is closed.
-- When an Open event is received, it transitions to the Opened state, indicating that the mailbox door is open.
-- In the Opened state, if no Close event is received within 2 minutes, it transitions to the Ajar state,
-  signifying that the door has been open for an extended period without closing.
-- When a Close event is received in the Opened state, it transitions back to the Closed state, indicating
-  that the mailbox door is closed.
-- In the Ajar state, when a Close event is received, it transitions back to the Closed state, indicating
-  that the mailbox door is closed.
-- This cycle repeats indefinitely as Open and Close events are received.
+  - The FSM starts in the Closed state, indicating that the mailbox door is closed.
+  - When an Open event is received, it transitions to the Opened state, indicating that the mailbox door is open.
+  - In the Opened state, if no Close event is received within 2 minutes, it transitions to the Ajar state,
+    signifying that the door has been open for an extended period without closing.
+  - When a Close event is received in the Opened state, it transitions back to the Closed state, indicating
+    that the mailbox door is closed.
+  - In the Ajar state, when a Close event is received, it transitions back to the Closed state, indicating
+    that the mailbox door is closed.
+  - This cycle repeats indefinitely as Open and Close events are received.
+  - On all state transitions, a message is POSTed to the user informing them of the status.
+  - Since the 'ajar' state can be indefinite, and to keep the user from being flooded with status messages, we use an
+    exponent-based timer to create user messages at increasingly longer intervals.
 
 """
 import gc
