@@ -8,7 +8,6 @@ Wiring
     3v3 (Physical pin #36) --> Normally Closed --> GPIO Pin #22 (Physical Pin #29)
 
 """
-
 import gc
 import json
 import os
@@ -106,17 +105,12 @@ def get_file_age(filename):
     :rtype: int 
     """
     file_stat = os.stat(filename)
-
     # Extract the modification timestamp (in seconds since the epoch)
     modification_time = file_stat[8]
-
     current_time = time.time()
     age_seconds = current_time - modification_time
-
     age_hours = (age_seconds % 86400) // 3600  # Number of seconds in an hour
-
     debug_print(f"FAGE: The file {filename} is {age_hours} hours old")
-
     return int(age_hours)
 
 
@@ -131,20 +125,23 @@ def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
     """
     deletions = False
     del_count = 0
+    found_count = 0
     files = os.listdir()
     tprint(f"PURG: Purging trace logs over {max_age} hours old")
     for file in files:
         age = get_file_age(file)
-        if file.endswith('.log') and age > max_age:
-            tprint(f"PURG: Trace log file {file} is {age} hours old. Deleting")
-            os.remove(file)
-            del_count += 1
-            if not deletions:
-                deletions = True
+        if file.endswith('.log'):
+            found_count += 1
+            if age > max_age:
+                tprint(f"PURG: Trace log file {file} is {age} hours old. Deleting")
+                os.remove(file)
+                del_count += 1
+                if not deletions:
+                    deletions = True
     if deletions:
-        tprint(f"PURG: Deleted {del_count} trace logs")
+        tprint(f"PURG: Found {found_count} logs . Deleted {del_count}")
     else:
-        tprint("PURG: No trace log files deleted")
+        tprint(f"PURG: Found {found_count} logs. None deleted")
 
 
 def debug_print(msg):
