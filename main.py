@@ -2,10 +2,21 @@
 This is a Raspberry Pi Pico W app to monitor a physical USPS mailbox.  The user is informed of mailbox status
 changes by a series text messages.
 
-Wiring
-    Pico W                     Reed Switch         Pico W
-    ------                     ---------------     ------
-    3v3 (Physical pin #36) --> Normally Closed --> GPIO Pin #22 (Physical Pin #29)
+Wiring:
+  Pico W                     Reed Switch         Pico W
+  ------                     ---------------     ------
+  3v3 (Physical pin #36) --> Normally Closed --> GPIO Pin #22 (Physical Pin #29)
+
+Over-The-Air (OTA) Updates:
+  The script will check for updates under 2 conditions:
+  1. At initialization time
+  2. Every OTA_CHECK_TIMER seconds (see below)
+
+Exception handling:
+  - The script will generate a traceback log on each unhandled exception
+  - It will try to recover from any exceptions
+  - It will give up trying to recover after MAX_EXCEPTION_RESETS_ALLOWED is reached
+  - If MAX_EXCEPTION_RESETS_ALLOWED is reached, a message is POSTed to the user
 
 """
 import gc
@@ -46,7 +57,7 @@ REQUEST_HEADER = {'content-type': 'application/json'}
 
 #
 # How often should we check for OTA updates?
-OTA_CHECK_TIMER = 300  # seconds (4hrs)
+OTA_CHECK_TIMER = 28800  # seconds (8 hrs)
 
 #
 # Files we want to update over-the-air (OTA)
