@@ -19,8 +19,7 @@ import network
 import ntptime
 import uio
 import urequests as requests
-import utime
-from machine import Pin, reset
+from machine import Pin, reset, RTC
 from ota import OTAUpdater
 
 import secrets
@@ -61,6 +60,42 @@ OTA_UPDATE_GITHUB_REPOS = {
 #
 # Max amount of time we will keep a tracelog (in hours)
 TRACE_LOG_MAX_KEEP_TIME = 48
+
+#
+# Offset from UTC for CST (Central Standard Time)
+CST_OFFSET_SECONDS = -6 * 3600  # UTC-6
+
+#
+# Offset from UTC for CDT (Central Daylight Time)
+CDT_OFFSET_SECONDS = -5 * 3600  # UTC-5
+
+
+def get_now():
+    """
+    Get the local time now
+
+    :return: timestamp
+    :rtype: time
+    """
+    current_offset_seconds = CDT_OFFSET_SECONDS if on_us_dst() else CST_OFFSET_SECONDS
+    return time.gmtime(time.time() + current_offset_seconds)
+
+
+def tprint(message):
+    """
+    Print with a pre-pended timestamp
+    
+    :param message: The message to print
+    :type message: string 
+    :return: Nothing 
+    :rtype: None 
+    """
+    current_time = get_now()
+    timestamp = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(
+        current_time[0], current_time[1], current_time[2],
+        current_time[3], current_time[4], current_time[5]
+    )
+    print("[{}] {}".format(timestamp, message))
 
 
 def get_file_age(filename):
@@ -122,17 +157,17 @@ def debug_print(msg):
     :rtype: None
     """
     if DEBUG:
-        print(msg)
+        tprint(msg)
 
 
-def current_time_to_string():
+def current_local_time_to_string():
     """
     Convert the current time to a human-readable string
 
     :return: timestamp string
     :rtype: str
     """
-    current_time = utime.localtime()
+    current_time = get_now()
     year, month, day_of_month, hour, minute, second, *_ = current_time
     return f'{year}-{month}-{day_of_month}-{hour}-{minute}-{second}'
 
@@ -147,7 +182,7 @@ def log_traceback(exception):
     """
     traceback_stream = uio.StringIO()
     sys.print_exception(exception, traceback_stream)
-    traceback_file = current_time_to_string() + '-' + 'traceback.log'
+    traceback_file = current_local_time_to_string() + '-' + 'traceback.log'
     output = traceback_stream.getvalue()
     print(output)
     time.sleep(0.5)
@@ -247,70 +282,99 @@ def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
     return exceeded
 
 
+def on_us_dst():
+    """
+    Are we on US Daylight Savings Time (DST)?
+
+    :return: True/False
+    :rtype: bool
+    """
+    on_dst = False
+    # Get the current month and day
+    current_month = RTC().datetime()[1]  # 1-based month
+    current_day = RTC().datetime()[2]
+
+    # DST usually starts in March (month 3) and ends in November (month 11)
+    if 3 < current_month < 11:
+        on_dst = True
+    elif current_month == 3:
+        # DST starts on the second Sunday of March
+        second_sunday = 14 - (RTC().datetime()[6] + 1 - current_day) % 7
+        if current_day > second_sunday:
+            on_dst = True
+    elif current_month == 11:
+        # DST ends on the first Sunday of November
+        first_sunday = 7 - (RTC().datetime()[6] + 1 - current_day) % 7
+        if current_day <= first_sunday:
+            on_dst = True
+
+    return on_dst
+
+
 def main():
     #
-    print("MAIN: Enable automatic garbage collection")
+    tprint("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    print("MAIN: Set Hostname.")
+    tprint("MAIN: Set Hostname.")
     network.hostname(secrets.HOSTNAME)
     #
-    print("MAIN: Turn OFF the access point interface")
+    tprint("MAIN: Turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
-    print("MAIN: Turn ON and connect the station interface")
+    tprint("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-    print("MAIN: Sync system time with NTP")
+    tprint("MAIN: Sync system time with NTP")
     try:
         ntptime.settime()
-        debug_print("MAIN: System time set successfully.")
+        debug_tprint("MAIN: System time set successfully.")
     except Exception as e:
-        print(f"MAIN: Error setting system time: {e}")
+        tprint(f"MAIN: Error setting system time: {e}")
         time.sleep(0.5)
         reset()
 
-    print("MAIN: set the OTA update timer")
+    tprint("MAIN: Set the OTA update timer")
     ota_timer = time.time()
     #
-    print("MAIN: Handle old traceback logs")
+    tprint("MAIN: Handle any old traceback logs")
     purge_old_log_files()
     #
-    print("MAIN: Set up OTA updates.")
+    tprint("MAIN: Set up OTA updates.")
     ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
 
-    print("MAIN: Run OTA update")
+    tprint("MAIN: Run OTA update")
     if ota_updater.updated():
-        print("MAIN: OTA updates added. Resetting system.")
+        tprint("MAIN: OTA updates added. Resetting system.")
         time.sleep(1)
         reset()
 
-    print("MAIN: Set up the reed switch.")
+    tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
-    print("MAIN: Instantiate the mailbox obj")
+    tprint("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    print("MAIN: Start event loop")
+    tprint("MAIN: Start event loop")
     while True:
         mailbox_door_state = bool(reed_switch.value())
 
         mailbox.event_handler(mailbox_door_state)
 
         if ota_update_interval_exceeded(ota_timer) and mailbox_door_state == MAILBOX_DOOR_CLOSED:
-            print("MAIN: Checking for OTA updates.")
+            tprint("MAIN: Checking for OTA updates.")
             if ota_updater.updated():
-                print("MAIN: Found OTA updates. Resetting system.")
+                tprint("MAIN: Found OTA updates. Resetting system.")
                 time.sleep(0.5)
                 reset()
             else:
-                print("MAIN: No OTA updates. Reset timer instead.")
+                tprint("MAIN: No OTA updates. Reset timer instead.")
                 ota_timer = time.time()
 
         if not wlan.isconnected():
-            print("MAIN: Restart network connection")
+            tprint("MAIN: Restart network connection")
             wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
@@ -318,7 +382,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        print("-C R A S H-")
+        tprint("-C R A S H-")
         tb_msg = log_traceback(exc)
         if max_reset_attempts_exceeded():
             # We cannot send every traceback since that would be a problem
