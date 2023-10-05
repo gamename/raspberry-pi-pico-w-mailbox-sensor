@@ -3,12 +3,9 @@ This is a Raspberry Pi Pico W app to monitor a physical USPS mailbox.  The user 
 changes by a series text messages.
 
 Wiring
-    Pico W                                Reed Switch
-    ------                                -----------
-    3v3 (Physical pin #36) -------------> common
-                                            |
-                                            |
-    GPIO Pin #22 (Physical Pin #29) <---- normally closed
+    Pico W                     Reed Switch         Pico W
+    ------                     ---------------     ------
+    3v3 (Physical pin #36) --> Normally Closed --> GPIO Pin #22 (Physical Pin #29)
 
 """
 
