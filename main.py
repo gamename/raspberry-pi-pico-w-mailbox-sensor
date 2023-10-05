@@ -330,7 +330,7 @@ def main():
     tprint("MAIN: Sync system time with NTP")
     try:
         ntptime.settime()
-        debug_tprint("MAIN: System time set successfully.")
+        debug_print("MAIN: System time set successfully.")
     except Exception as e:
         tprint(f"MAIN: Error setting system time: {e}")
         time.sleep(0.5)
