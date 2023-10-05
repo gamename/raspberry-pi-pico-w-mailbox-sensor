@@ -132,19 +132,19 @@ def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
     deletions = False
     del_count = 0
     files = os.listdir()
-    print(f"PURG: Purging trace logs over {max_age} hours old")
+    tprint(f"PURG: Purging trace logs over {max_age} hours old")
     for file in files:
         age = get_file_age(file)
         if file.endswith('.log') and age > max_age:
-            print(f"PURG: Trace log file {file} is {age} hours old. Deleting")
+            tprint(f"PURG: Trace log file {file} is {age} hours old. Deleting")
             os.remove(file)
             del_count += 1
             if not deletions:
                 deletions = True
     if deletions:
-        print(f"PURG: Deleted {del_count} trace logs")
+        tprint(f"PURG: Deleted {del_count} trace logs")
     else:
-        print("PURG: No trace log files deleted")
+        tprint("PURG: No trace log files deleted")
 
 
 def debug_print(msg):
@@ -313,26 +313,26 @@ def on_us_dst():
 
 def main():
     #
-    tprint("MAIN: Enable automatic garbage collection")
+    print("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    tprint("MAIN: Set Hostname.")
+    print("MAIN: Set Hostname.")
     network.hostname(secrets.HOSTNAME)
     #
-    tprint("MAIN: Turn OFF the access point interface")
+    print("MAIN: Turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
-    tprint("MAIN: Turn ON and connect the station interface")
+    print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-    tprint("MAIN: Sync system time with NTP")
+    print("MAIN: Sync system time with NTP")
     try:
         ntptime.settime()
         debug_print("MAIN: System time set successfully.")
     except Exception as e:
-        tprint(f"MAIN: Error setting system time: {e}")
+        print(f"MAIN: Error setting system time: {e}")
         time.sleep(0.5)
         reset()
 
