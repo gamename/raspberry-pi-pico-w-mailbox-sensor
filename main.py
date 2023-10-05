@@ -21,14 +21,18 @@ import uio
 import urequests as requests
 import utime
 from machine import Pin, reset
-from ota import OTAUpdater, OTANoMemory
+from ota import OTAUpdater
 
 import secrets
-from mailbox import MailBoxStateMachine, MailBoxNoMemory
+from mailbox import MailBoxStateMachine
 
 #
 # print debug messages
 DEBUG = False
+
+#
+# Mailbox door open = LOW/False and closed = HIGH/True
+MAILBOX_DOOR_CLOSED = True
 
 # Crash loop detector. If we crash more than 3 times,
 # give up restarting the system
@@ -93,19 +97,19 @@ def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
     deletions = False
     del_count = 0
     files = os.listdir()
-    debug_print(f"PURG: Purging trace logs over {max_age} hours old")
+    print(f"PURG: Purging trace logs over {max_age} hours old")
     for file in files:
         age = get_file_age(file)
         if file.endswith('.log') and age > max_age:
-            debug_print(f"PURG: File {file} is {age} hours old. Deleting")
+            print(f"PURG: Trace log file {file} is {age} hours old. Deleting")
             os.remove(file)
             del_count += 1
             if not deletions:
                 deletions = True
     if deletions:
-        debug_print(f"PURG: Deleted {del_count} trace logs")
+        print(f"PURG: Deleted {del_count} trace logs")
     else:
-        debug_print("PURG: No trace log files deleted")
+        print("PURG: No trace log files deleted")
 
 
 def get_log_count():
@@ -154,7 +158,7 @@ def log_traceback(exception):
 
     :param exception: An exception intercepted in a try/except statement
     :type exception: exception
-    :return: Nothing
+    :return:  formatted string
     """
     traceback_stream = uio.StringIO()
     sys.print_exception(exception, traceback_stream)
@@ -173,7 +177,6 @@ def flash_led(count=100, interval=0.25):
 
     :param: How many times to flash
     :param: Interval between flashes
-
     :return: Nothing
     """
     led = Pin("LED", Pin.OUT)
@@ -239,20 +242,6 @@ def max_reset_attempts_exceeded(max_exception_resets=MAX_EXCEPTION_RESETS_ALLOWE
     return bool(log_file_count > max_exception_resets)
 
 
-def check_wifi(wlan):
-    """
-    Simple function to re-establish a Wi-Fi connection if needed
-
-    :param wlan: network handle
-    :type wlan: WLAN.network
-    :return: Nothing
-    :rtype: None
-    """
-    if not wlan.isconnected():
-        debug_print("MAIN: Restart network connection")
-        wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
-
-
 def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
     """
     Determine if we have waited long enough to check for OTA
@@ -275,21 +264,21 @@ def ota_update_interval_exceeded(ota_timer, interval=OTA_CHECK_TIMER):
 
 def main():
     #
-    debug_print("MAIN: Enable automatic garbage collection")
+    print("MAIN: Enable automatic garbage collection")
     gc.enable()
     #
-    debug_print("MAIN: Set Hostname. Limited to 15 chars at present (grr)")
+    print("MAIN: Set Hostname.")
     network.hostname(secrets.HOSTNAME)
     #
-    debug_print("MAIN: Explicitly turn OFF the access point interface")
+    print("MAIN: Turn OFF the access point interface")
     ap_if = network.WLAN(network.AP_IF)
     ap_if.active(False)
     #
-    debug_print("MAIN: Turn ON and connect the station interface")
+    print("MAIN: Turn ON and connect the station interface")
     wlan = network.WLAN(network.STA_IF)
     wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-    debug_print("MAIN: Sync system time with NTP")
+    print("MAIN: Sync system time with NTP")
     try:
         ntptime.settime()
         debug_print("MAIN: System time set successfully.")
@@ -298,51 +287,46 @@ def main():
         time.sleep(0.5)
         reset()
 
-    debug_print("MAIN: set the OTA update timer")
+    print("MAIN: set the OTA update timer")
     ota_timer = time.time()
     #
     print(f"MAIN: There are {get_log_count()} traceback logs present")
     purge_old_log_files()
     #
-    debug_print("MAIN: If there are any OTA updates, pull them and reset the system if found")
+    print("MAIN: Set up OTA updates.")
     ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
 
-    debug_print("MAIN: run OTA update")
+    print("MAIN: run OTA update")
     if ota_updater.updated():
-        print(f"MAIN: {current_time_to_string()} - OTA updates added. Resetting.")
-        time.sleep(0.5)
+        print("MAIN: OTA updates added. Resetting system.")
+        time.sleep(1)
         reset()
 
-    debug_print("MAIN: Set the reed switch to be LOW (False) on door open and HIGH (True) on door closed")
+    print("MAIN: Set the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
-    debug_print("MAIN: Instantiate the mailbox obj")
+    print("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    print("MAIN: Starting event loop")
+    print("MAIN: Start event loop")
     while True:
-        mailbox_door_is_closed = bool(reed_switch.value())
+        mailbox_door_state = bool(reed_switch.value())
 
-        try:
-            mailbox.event_handler(mailbox_door_is_closed)
-        except MailBoxNoMemory:
-            print(f"MAIN: {current_time_to_string()} - Ran out of mailbox memory")
-            time.sleep(0.5)
-            reset()
+        mailbox.event_handler(mailbox_door_state)
 
-        if ota_update_interval_exceeded(ota_timer) and mailbox_door_is_closed:
-            debug_print(current_time_to_string())
-            try:
-                if ota_updater.updated():
-                    reset()
-            except OTANoMemory:
-                print(f"MAIN: {current_time_to_string()} - Ran out of OTA memory.")
+        if ota_update_interval_exceeded(ota_timer) and mailbox_door_state == MAILBOX_DOOR_CLOSED:
+            print("MAIN: Checking for OTA updates.")
+            if ota_updater.updated():
+                print("MAIN: Found OTA updates. Resetting system.")
                 time.sleep(0.5)
                 reset()
             else:
+                print("MAIN: No OTA updates. Reset timer instead.")
                 ota_timer = time.time()
 
-        check_wifi(wlan)
+        if not wlan.isconnected():
+            print("MAIN: Restart network connection")
+            wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
 if __name__ == "__main__":
