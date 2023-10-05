@@ -112,21 +112,6 @@ def purge_old_log_files(max_age=TRACE_LOG_MAX_KEEP_TIME):
         print("PURG: No trace log files deleted")
 
 
-def get_log_count():
-    """
-    Get a count of how many traceback logs we have
-
-    :return: A count of log files
-    :rtype: int
-    """
-    count = 0
-    files = os.listdir()
-    for file in files:
-        if file.endswith('.log'):
-            count += 1
-    return count
-
-
 def debug_print(msg):
     """
     A wrapper to print when debug is enabled
@@ -290,19 +275,19 @@ def main():
     print("MAIN: set the OTA update timer")
     ota_timer = time.time()
     #
-    print(f"MAIN: There are {get_log_count()} traceback logs present")
+    print("MAIN: Handle old traceback logs")
     purge_old_log_files()
     #
     print("MAIN: Set up OTA updates.")
     ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
 
-    print("MAIN: run OTA update")
+    print("MAIN: Run OTA update")
     if ota_updater.updated():
         print("MAIN: OTA updates added. Resetting system.")
         time.sleep(1)
         reset()
 
-    print("MAIN: Set the reed switch.")
+    print("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
     print("MAIN: Instantiate the mailbox obj")
