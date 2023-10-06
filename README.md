@@ -1,11 +1,13 @@
 # Table of Contents
 
-- [The Idea](#the-idea)
-- [The Journey - TL;DR Version ](#the-journey---tl;dr-version-)
-- [The Journey - Long Version](#the-journey---long-version)
-- [Pictures](#pictures)
-- [Parts List](#parts-list)
-
+- [Table of Contents](#table-of-contents)
+    - [The Idea](#the-idea)
+    - [The Journey - TL;DR Version](#the-journey---tl;dr-version)
+    - [The Journey - Long Version](#the-journey---long-version)
+    - [The REST API for Text Messaging](#the-rest-api-for-text-messaging)
+    - [Pictures](#pictures)
+    - [Parts List](#parts-list)
+ 
 ## The Idea
 
 Like many omg-will-this-ever-end projects, it started with a simple idea: why not install a sensor on my (snail)
@@ -201,6 +203,34 @@ collection), I was grateful he got back to me. Time to give this new fix a try.<
 And it made a big difference. The memory problems disappeared. My Micropython code is now working pretty well. So far,
 the mailbox code has been running multiple days without incident. I **think** I finally have the solution I set out to
 create. It was a long, fun road. Well, fun when it wasn't driving me nuts.
+
+## The REST API for Text Messaging
+
+In the code, there are requests like this one:
+
+```python
+resp = requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+```
+
+and this one:
+
+```python
+resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=json.dumps(traceback_data), headers=REQUEST_HEADER)
+```
+
+They are what generate SMS text messages to someone's cell phone.
+
+In my case, they are URLs for a REST definition on an API Gateway on AWS. The API Gateway passes the POST information
+to an AWS Lambda function. The Lambda function invokes a call to a Simple Notification Service (SNS) topic. That
+topic is associated with a particular phone number. A message from the Lambda function is sent to that phone number.
+Got it? :)
+
+Yeah, its confusing. It is much simpler to set up than it sounds, but the learning curve is pretty steep to get to that
+point. Don't give up though. There is a good substitution for it. Have a look at this website:<br><br>
+https://pushover.net/
+<br><br>For a small fee, you can send SMS text messages from there. They offer a REST API (with sample code). This is a
+better option for most people.
+
 
 ## Pictures
 
