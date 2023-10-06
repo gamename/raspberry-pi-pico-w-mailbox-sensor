@@ -222,3 +222,53 @@ create. It was a long, fun road - when it wasn't driving me nuts.
 10. ### The Pico box installed underneath mailbox.
 
 ![](.README_images/06a3173f.png)
+
+## Parts List
+
+[Pico W](https://www.amazon.com/dp/B0B72GV3K3?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+[Pico Breakout Board](https://www.amazon.com/dp/B0BGHQXSRR?ref=ppx_yo2ov_dt_b_product_details&th=1) (to avoid soldering
+Pico)
+[2-Conductor Outdoor Cable](https://www.amazon.com/gp/product/B0C6J19DTX/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+[Project Box](https://www.amazon.com/gp/product/B07Q14K8YT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+[Cable Tie Mounts](https://www.amazon.com/gp/product/B00DFZREGK/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (for
+securing cable to mailbox support pole)
+[Nylon Screws/Bolts](https://www.amazon.com/gp/product/B08DMSNB8X/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) (to
+attach Pico to project box)
+[Silicone Adhesive](https://www.amazon.com/gp/product/B00NGZHGFI/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (to
+glue magnets to mailbox and Pico box)
+[Construction Adhesive](https://www.amazon.com/gp/product/B015CJ94TQ/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) (
+to glue cable to concrete)
+[Landscape Staples](https://www.amazon.com/gp/product/B0B3XFFKRD/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (to
+secure cable along perimeter of driveway)
+[Power Supply](https://www.amazon.com/gp/product/B0827V2WT4/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+[Wire Joiners](https://www.amazon.com/gp/product/B09NGH4S7K/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (to join
+wires at the mailbox end and Micro-USB adapters)
+[Wire Crimps](https://www.amazon.com/gp/product/B07RW6XVWZ/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (for
+connecting to the reed switch)
+[Wire Crimping Tool](https://www.amazon.com/gp/product/B07GFLWKTT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+[Magnets](https://www.amazon.com/gp/product/B0BVY5VYQY/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+or [Magnetic Tape](https://www.amazon.com/gp/product/B081CZ7V1V/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) (to
+secure Pico box to mailbox)
+[Reed Switch](https://www.amazon.com/gp/product/B07PRR33DF/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+[USB to Micro-USB Power Cable](https://www.amazon.com/gp/product/B07TKHLZHT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+[Female Micro-USB Adapter](https://www.amazon.com/gp/product/B0B74LKPPT/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (
+to connect to power cable)
+Male Micro-USB Adapter - comes with female adapter above (to connect to Pico at mailbox end)
+[Cable Clips](https://www.amazon.com/Monoprice-Circle-cable-clips-100pcs/dp/B0019R6SO0/ref=sr_1_4?crid=3OKVRBVSL48Y4&keywords=cable+clips&qid=1696610055&sprefix=cable+clips%2Caps%2C134&sr=8-4) (
+to secure cable to garage door frame)
+[Magnetic Cable Zip Tie Base](https://www.amazon.com/gp/product/B0CF9PG68G/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) (
+to secure wires underneath mailbox)
+[Zip Ties](https://www.amazon.com/gp/product/B09P53D43R/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (to bundle
+wiring at mailbox end)
+[1/2" Drill Bit](https://www.amazon.com/gp/product/B004GIO0F8/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) (for hole
+in bottom of mailbox)
+3/16" Drill Bit - see above (for holes in the project box)
+3/32" Drill Bit - see above (for drilling into mailbox support pole)
+Screws (to secure cable tie mounts to mailbox poll)
+[Wire Stripper](https://www.amazon.com/gp/product/B0953113F7/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+[Wire Cutters](https://www.amazon.com/gp/product/B087P191LP/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+[Mini Screwdriver](https://www.amazon.com/gp/product/B07YJG766F/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+[LED Headlamp](https://www.amazon.com/Headlamp-Camping-LED-Headlight-Hunting/dp/B07QGRWZNB/ref=sxin_16_pa_sp_search_thematic_sspa?content-id=amzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2%3Aamzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2&crid=U71NGTTJK0J0&cv_ct_cx=led+head+light&keywords=led+head+light&pd_rd_i=B07QGRWZNB&pd_rd_r=03ac2192-fb6a-4b9a-a3eb-755f2077deac&pd_rd_w=ZztZI&pd_rd_wg=qv8U8&pf_rd_p=26abd864-41de-4663-b956-74ef0d53e0d2&pf_rd_r=EHPM6XE0PETN11X3SFPJ&qid=1696610316&s=hi&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=led+head+light%2Ctools%2C123&sr=1-4-2b34d040-5c83-4b7f-ba01-15975dfb8828-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1) (
+comes in very handy)
+
+
