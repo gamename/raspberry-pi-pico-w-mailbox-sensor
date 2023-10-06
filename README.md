@@ -38,8 +38,7 @@ these ["landscape staples"](https://www.amazon.com/gp/product/B0B3XFFKRD/ref=ppx
 to bolt down the cable along the driveway perimeter. Issue #1 solved. Issue #2 was trickier. I was concerned about the
 cable length potentially interfering with the reed switch's ability to function correctly. With that in mind, I wanted
 to avoid doing things like routing cable up and over my garage door - which would add several feet. After invoking The
-Google several times, I
-discovered [construction adhesive](https://www.amazon.com/gp/product/B015CJ94TQ/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+Google several times, I discovered [construction adhesive](https://www.amazon.com/gp/product/B015CJ94TQ/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
 which would let me glue the cable directly to concrete. This saved me cabling probably 20 to 25 extra feet (see pic
 below).
 
@@ -76,26 +75,27 @@ this [thread](https://forums.raspberrypi.com/viewtopic.php?t=356246) on the Rasp
 
 By now it was obsessing about the cable length and how it could be the issue. It led to much googlation and discovering
 the possibility I could damage the RPi because I did not have a resistor on the connection - or maybe a capacitor -
-opinions varied. Much time was spent chasing this down. It was clear my design workable, but not optimum.<br>
+opinions varied. Much time was spent chasing this down. It appeared my design was workable, but not optimum.<br>
 
-In moment of desperation, I was reviewing the documentation from the reed switch vendor and came across this:<br>
+I retraced my steps, confirmed my wiring, and poured over lots of search results. I even revisited the vendor's reed
+switch documentation. That turned out to be very instructive. Here is what I found in their product writeup:<br>
 ![](.README_images/5d13c214.png)<br>
 ...which is exactly the [opposite](https://en.wikipedia.org/wiki/Reed_switch) of the Normally Open (NO)/Normally Closed
 (NC) standard.<br><br>
 Here is how it is **supposed** to work:<br>
 _"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
 open when a magnetic field is applied. "_<br>
-So I switched to the "incorrect" connection on the switch and it began to work - sorta. I did get the expected behavior
-from the switch, but it was still intermittent. Sometimes when closing the mailbox door (and theoretically closing the
-circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using a more
-powerful magnet to close the circuit (see pic below). I glued the new magnet to the mailbox door and saw
-much improvement.<br>
+So I moved my wiring to the "incorrect" connection on the switch and it began to work - sorta. I did get the expected
+behavior from the switch, but it was still intermittent. Sometimes when closing the mailbox door (and theoretically
+closing the circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using
+a more powerful magnet to close the circuit (see pic below). I glued the new magnet to the mailbox door and saw clear
+improvement.<br>
 Now the script was behaving as expected most of the time and the magnets properly closed the circuit when the door was
 closed. Opening the door was reported correctly too.<br>
 But there was one remaining issue. There were still intermittent "open" and "close" states being reported
 when nothing was being touched. Frustrating.
 I'm sure that if I was a EE I could have figured out how to make this work. But I'm not a EE and Basic Electronics
-training was 43 years ago in Air Force. It was time to shift gears on my project.
+training was 43 years ago in Air Force. It was time to shift gears on the project.
 
 5. ### Enter Pico W<br>
 
@@ -108,19 +108,21 @@ under the mailbox (see pics below). Everything was good to go in the hardware re
 
 6. ### Micropython<br>
 
-Now all I had to do was port my script over to Micropython. How hard could that be? Turns out it wasn't hard - but
-there are caveats. <br>
+Pico doesn't use Python, it uses MicroPython, which is Almost The Same Thing. All I had to do was port my script. How
+hard could that be? Turns out it wasn't hard - but there are caveats. <br>
 In a sense, scripting on a microcontroller is monolithic. Things that are handled by the operating
-system on the RPi (or any other system for that matter) have to be dealt with in your Python (or rather Micropython)
-script. For example, it is responsible for setting up and maintaining the Wi-Fi connection.<br>
+system on the RPi (or any other OS for that matter) have to be handled by your Micropython script. You are, for
+example, responsible for setting up and maintaining the Wi-Fi connection. Therefore, the scripter has to be aware of
+various things not normally associated with Python (like setting the system time with NTP).
+
 
 7. ### Wi-Fi Woes<br>
 Coding the Wi-Fi function was simple enough, but the connections were unstable. Had to recode it a few times before
-there was reasonably good connectivity. However, the connection would still inexplicably drop from time to time. It
+there was reasonably reliable connectivity. However, the connection would still inexplicably drop from time to time. It
 was then I realized the Pico W quite far from my router. The signal strength was probably very weak out at the mailbox.
 After installing a Wi-Fi extender, the intermittent drops went away. There were still other little quirks though. For
-example, hostnames can only be a max of 15 characters. After finding that out, my host naming started working. We were
-good to go on the Wi-Fi side.
+example, hostnames can only be a max of 15 characters. After finding that out, my host naming started working. At last,
+we were good to go on the Wi-Fi side.
 
 8. ### OTA? What OTA?<br>
 
@@ -135,8 +137,8 @@ on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) 
 They were good solutions. Both were clever and interesting. But they were not what I wanted. The sticking point for me
 was that in both cases the expectation was that I would have to include an OTA module in all my repos. In other words,
 identical code would have to be copied to each Pico project. I didn't like that idea. It could turn into a maintenance
-problem. Any changes to the OTA code would mean copying it and committing it in multiple places. I foresaw headaches.
-I have several Pico projects.<br>
+problem. Any changes to the OTA code would mean copying it and committing it in multiple places. I foresaw headaches
+since I have several Pico projects.<br>
 Long story short: I decided to write my own OTA module. Yes, it was a major digression. But it would avoid much pain
 in the long run.
 
@@ -144,8 +146,8 @@ in the long run.
 
 Leveraging Tim McAleer's [work](https://github.com/kevinmcaleer/ota), I created my
 own [OTA project](https://github.com/gamename/micropython-over-the-air-utility).<br>
-It was time-consuming, but fun. I managed to circumvent the multiple copies issue by adding support for multiple repos.
-Have a look at the project if you're interested.<br>
+It was time-consuming, but fun. Design, coding and testing took a few days. I managed to circumvent the multiple copies
+issue by adding support for multiple repos. Have a look at the project if you're interested.  <br>
 
 10. ### Cognitive Complexity<br>
 
@@ -153,18 +155,18 @@ Meanwhile, by mailbox code was turning into spaghetti. The linter I used, SonarL
 "Cognitive Complexity" (i.e. maintainability) issues. I agreed. <br>
 What started out as a simple effort had turned into a substantial collection of flags and recursive if-elsif-else
 (il)logic. It was becoming less and less comprehensible. <br>
-The solution was to write a mailbox class containing a finite state machine (FSM). The result is the
-`MailBoxStateMachine` in the `mailbox.py` file. It was another semi-digression, but well worth the time. I could offload
-much of the logic in the main script by doing that. Now the `main.py` script just had to instantiate a mailbox object
-along with the OTA object. Much better.
+My solution was to write a mailbox class containing a finite state machine (FSM). The result is the
+`MailBoxStateMachine` class in the `mailbox.py` file. It was another semi-digression, but well worth the time. I could
+now offload much of the logic in the main script. The `main.py` script just had to instantiate a mailbox object along
+with the OTA object. Much better.
 
 11. ### Mem Leaks R Us<br>
 
 Then things went nuts. I was getting crashes all over the place. All of them were related to memory. At
 first, I thought the issue was the Pico simply didn't have enough memory to support the new mailbox/OTA objects. Great,
 I thought, the effort to write those classes was wasted.<br>
-But I stuck with the debugging. Lots of logging and error-recovery code got written. I began logging all the
-tracebacks to files. Forcing a restart of the Pico turned out to be a pretty good stopgap for the memory issues.
+But I stuck with it and continued debugging. Lots of logging and error-recovery code got written. I began logging all
+the tracebacks to files. Forcing a restart of the Pico turned out to be a pretty good stopgap for the memory issues.
 But that led to some crash-reload-crash loops. (At one point, I completely filled up the filesystem with traceback logs.
 Recovering from that was an adventure.) That led to another stopgap where I would limit the number of system resets.
 After crashing and reloading a set number of times, I would give up and let the system stay down.<br>
@@ -180,7 +182,7 @@ source projects. I assumed the worst and began researching options.<br>
 In spite of what I was seeing on Micropython, I like the Pico. I wanted to stay with that platform. Maybe, I thought,
 writing my app in C would be a more solid solution? There was, I knew, OTA support on FreeRTOS with Amazon Web Services
 (AWS). Its been a while, but I've written in C and have lots of AWS experience. Why not give it a try?<br>
-With some hesitation, I started down this new path. The setup for FreeRTOS was challenging, but I managed to get sample
+With some hesitation, I ventured down this new path. The setup for FreeRTOS was challenging, but I managed to get sample
 apps (like `blink.c`) to work without much trouble. I coded a C app that was a close equivalent of the Micropython
 version and began testing.<br>
 Debugging was where it got interesting. Debugging an embedded app on a Pico is non-trivial. You have to load libraries
@@ -198,7 +200,7 @@ memory leaks should go away. Although the solution is not very 'pythonic' (Pytho
 collection), I was grateful he got back to me. Time to give this new fix a try.<br>
 And it made a big difference. The memory problems disappeared. My Micropython code is now working pretty well. So far,
 the mailbox code has been running multiple days without incident. I **think** I finally have the solution I set out to
-create. It was a long, fun road - when it wasn't driving me nuts.
+create. It was a long, fun road. Well, fun when it wasn't driving me nuts.
 
 ## Pictures
 
