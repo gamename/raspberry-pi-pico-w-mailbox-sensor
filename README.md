@@ -1,19 +1,31 @@
+# Table of Contents
+
+- [The Idea](#the-idea)
+- [The Journey - TL;DR Version ](#the-journey---tl;dr-version-)
+- [The Journey - Long Version](#the-journey---long-version)
+- [Pictures](#pictures)
+- [Parts List](#parts-list)
+
 ## The Idea
 
 Like many omg-will-this-ever-end projects, it started with a simple idea: why not install a sensor on my (snail)
 mailbox to tell me when we get a delivery?
 
-## TL;DR Version
+## The Journey - TL;DR Version
 
-It was a long journey with lots of pitfalls. Wrote a lot more code than expected. But I finally have a
-reliably working sensor.
+It was a big effort with lots of pitfalls. Wrote a lot more code than expected - in multiple languages on multiple
+platforms. But, I finally have a reliable mailbox sensor.
 
-## Long Version
+## The Journey - Long Version
+
+What follows is an account of my efforts to create what I thought would be fairly trivial. Spoiler alert: It wasn't.  
+Anyway, I thought writing everything down would be cathartic for me and maybe instructive for others who are working
+on similar projects.
 
 1. ### Original Design <br>
 
-What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor (another project)
-and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi 4 to my mailbox (about 50 feet). The
+What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor ([another project](https://github.com/gamename/raspberry-pi-pico-w-garage-door-sensor))
+and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi to my mailbox (about 50 feet). The
 need for a 2-conductor cable was because I expected to house a reed switch in the mailbox. I ordered the cable and it
 arrived a couple days later. I was careful to order outdoor-rated cable since it would be running down my driveway
 to the mailbox.
@@ -33,7 +45,7 @@ below).
 
 3. ### Raspberry Pi 4<br>
 
-At this point, I installed the RPi 4. I had done this plenty times before, so it was trivial to get it up and running in
+At this point, I installed the RPi 4. I had done this many times before, so it was easy to get it up and running in
 "headless" mode. Python also wasn't a problem; I've been programming in it for many years. I used GPIO pin #23 and
 GPIO pin #1 to connect to the reed switch. The mailbox had the switch installed by this time too. Brimming with
 confidence, I fired up a simple script:
@@ -82,14 +94,16 @@ Now the script was behaving as expected most of the time and the magnets properl
 closed. Opening the door was reported correctly too.<br>
 But there was one remaining issue. There were still intermittent "open" and "close" states being reported
 when nothing was being touched. Frustrating.
+I'm sure that if I was a EE I could have figured out how to make this work. But I'm not a EE and Basic Electronics
+training was 43 years ago in Air Force. It was time to shift gears on my project.
 
 5. ### Enter Pico W<br>
 
 Rather than continue to wrestle with cable length, resistors and/or capacitors, and potentially damaging my RPi, I
 decided on another approach. Instead of a 50' switch connection, I would abandon the RPi 4 and use a microcontroller
-(Pico W). That way I could colocate it with the reed switch on the mailbox itself. The cable length issues would go
+(Pico W). That way I could colocate it and the reed switch on the mailbox itself. The cable length issues would go
 away and the existing cable could be used to conduct the 5 volts needed by the Pico. Much simpler design.<br>
-I installed the Pico in a small box, then connected the power and reed switch to it. The Pico box was then installed
+I installed the Pico in a small box, then connected the power and reed switch to it. The Pico box was then placed
 under the mailbox (see pics below). Everything was good to go in the hardware realm.
 
 6. ### Micropython<br>
@@ -97,13 +111,18 @@ under the mailbox (see pics below). Everything was good to go in the hardware re
 Now all I had to do was port my script over to Micropython. How hard could that be? Turns out it wasn't hard - but
 there are caveats. <br>
 In a sense, scripting on a microcontroller is monolithic. Things that are handled by the operating
-system on a full-blown operating system have to be dealt with in Python (or rather Micropython). For example, it is
-responsible for setting up and maintaining the Wi-Fi connection.<br>
-Coding the Wi-Fi function was simple enough, but the connections were unstable. Had to recode it a few times before
-I got stable, reliable connectivity. There were other little quirks too - like the fact that hostnames can only be
-a max of 15 characters. After finding that out, my host naming started working.
+system on the RPi (or any other system for that matter) have to be dealt with in your Python (or rather Micropython)
+script. For example, it is responsible for setting up and maintaining the Wi-Fi connection.<br>
 
-7. ### OTA? What OTA?<br>
+7. ### Wi-Fi Woes<br>
+Coding the Wi-Fi function was simple enough, but the connections were unstable. Had to recode it a few times before
+there was reasonably good connectivity. However, the connection would still inexplicably drop from time to time. It
+was then I realized the Pico W quite far from my router. The signal strength was probably very weak out at the mailbox.
+After installing a Wi-Fi extender, the intermittent drops went away. There were still other little quirks though. For
+example, hostnames can only be a max of 15 characters. After finding that out, my host naming started working. We were
+good to go on the Wi-Fi side.
+
+8. ### OTA? What OTA?<br>
 
 Up to this point, the Pico was USB attached to my laptop most of the time. I would code changes, download them, and
 do testing. When satisfied with the results, I would then physically carry the unit to my mailbox and install it.
@@ -112,23 +131,23 @@ updating facility was needed.<br>
 Research on the subject revealed that Over-The-Air (OTA) updates were possible, but not yet standardized on the Pico.
 The best solutions I found were git-based. That is, when a user committed something to git, the OTA process would
 detect the changes and pull a copy onto the Pico. I really liked that design. I found some interesting YouTube videos
-on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s)
-and [here](https://www.youtube.com/watch?v=UX87SrdqIoc)). <br>
-They were good solutions. Both were really clever and interesting, but not exactly what I wanted. For example, in both
-cases the expectation was that I would have to include an OTA module in all my repos. In other words, identical code
-would have to be copied to each Pico project. That could turn into a maintenance problem. Any changes to the OTA
-code would mean copying it and committing it in multiple places. I foresaw headaches. I have several Pico projects.<br>
-So I decided to write my own OTA module to help mitigate the multiple copy issue.<br>
-Yes, it was a major digression. But it would avoid much pain in the long run.
+on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) and [here](https://www.youtube.com/watch?v=UX87SrdqIoc)).<br>
+They were good solutions. Both were clever and interesting. But they were not what I wanted. The sticking point for me
+was that in both cases the expectation was that I would have to include an OTA module in all my repos. In other words,
+identical code would have to be copied to each Pico project. I didn't like that idea. It could turn into a maintenance
+problem. Any changes to the OTA code would mean copying it and committing it in multiple places. I foresaw headaches.
+I have several Pico projects.<br>
+Long story short: I decided to write my own OTA module. Yes, it was a major digression. But it would avoid much pain
+in the long run.
 
-8. ### Fun with Micropython Classes<br>
+9. ### Fun with Micropython Classes<br>
 
 Leveraging Tim McAleer's [work](https://github.com/kevinmcaleer/ota), I created my
 own [OTA project](https://github.com/gamename/micropython-over-the-air-utility).<br>
 It was time-consuming, but fun. I managed to circumvent the multiple copies issue by adding support for multiple repos.
 Have a look at the project if you're interested.<br>
 
-9. ### Cognitive Complexity<br>
+10. ### Cognitive Complexity<br>
 
 Meanwhile, by mailbox code was turning into spaghetti. The linter I used, SonarLint, started complaining about
 "Cognitive Complexity" (i.e. maintainability) issues. I agreed. <br>
@@ -139,7 +158,7 @@ The solution was to write a mailbox class containing a finite state machine (FSM
 much of the logic in the main script by doing that. Now the `main.py` script just had to instantiate a mailbox object
 along with the OTA object. Much better.
 
-10. ### Mem Leaks R Us<br>
+11. ### Mem Leaks R Us<br>
 
 Then things went nuts. I was getting crashes all over the place. All of them were related to memory. At
 first, I thought the issue was the Pico simply didn't have enough memory to support the new mailbox/OTA objects. Great,
@@ -154,7 +173,7 @@ so invocations of `requests.get()` or `requests.post()`, I would get some kind o
 diagnostics I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025) in
 `micropython-lib` and waited.
 
-11. ### Back to embedded C<br>
+12. ### Back to Embedded C<br>
 
 I didn't know how long it could be before someone would respond. My experience has not always been a good with open
 source projects. I assumed the worst and began researching options.<br>
@@ -172,7 +191,7 @@ There were major issues getting this rig to work. I couldn't set breakpoints or 
 out I had to make app changes to accommodate it. I was working my way through the extensive set of debugging
 requirements when I heard back from the micropython-lib folks... <br>
 
-12. ### Some good news<br>
+13. ### Good News<br>
 
 ["jimmo"](https://github.com/jimmo) on GitHub informed me that I needed to make a simple change to my code and the
 memory leaks should go away. Although the solution is not very 'pythonic' (Python should be doing its own garbage
@@ -268,6 +287,6 @@ create. It was a long, fun road - when it wasn't driving me nuts.
 27. [Wire Stripper](https://www.amazon.com/gp/product/B0953113F7/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
 28. [Wire Cutters](https://www.amazon.com/gp/product/B087P191LP/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
 29. [Mini Screwdriver](https://www.amazon.com/gp/product/B07YJG766F/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
-30. [LED Headlamp](https://www.amazon.com/Headlamp-Camping-LED-Headlight-Hunting/dp/B07QGRWZNB/ref=sxin_16_pa_sp_search_thematic_sspa?content-id=amzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2%3Aamzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2&crid=U71NGTTJK0J0&cv_ct_cx=led+head+light&keywords=led+head+light&pd_rd_i=B07QGRWZNB&pd_rd_r=03ac2192-fb6a-4b9a-a3eb-755f2077deac&pd_rd_w=ZztZI&pd_rd_wg=qv8U8&pf_rd_p=26abd864-41de-4663-b956-74ef0d53e0d2&pf_rd_r=EHPM6XE0PETN11X3SFPJ&qid=1696610316&s=hi&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=led+head+light%2Ctools%2C123&sr=1-4-2b34d040-5c83-4b7f-ba01-15975dfb8828-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1) (
-    comes in very handy)
+30. [LED Headlamp](https://www.amazon.com/Headlamp-Camping-LED-Headlight-Hunting/dp/B07QGRWZNB/ref=sxin_16_pa_sp_search_thematic_sspa?content-id=amzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2%3Aamzn1.sym.26abd864-41de-4663-b956-74ef0d53e0d2&crid=U71NGTTJK0J0&cv_ct_cx=led+head+light&keywords=led+head+light&pd_rd_i=B07QGRWZNB&pd_rd_r=03ac2192-fb6a-4b9a-a3eb-755f2077deac&pd_rd_w=ZztZI&pd_rd_wg=qv8U8&pf_rd_p=26abd864-41de-4663-b956-74ef0d53e0d2&pf_rd_r=EHPM6XE0PETN11X3SFPJ&qid=1696610316&s=hi&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=led+head+light%2Ctools%2C123&sr=1-4-2b34d040-5c83-4b7f-ba01-15975dfb8828-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1) ( comes in very handy)
+31. [Wi-Fi Extender](https://www.amazon.com/gp/product/B07N1WW638/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
 
