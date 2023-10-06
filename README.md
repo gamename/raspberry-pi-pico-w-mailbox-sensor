@@ -5,7 +5,7 @@ mailbox to tell me when we get a delivery?
 
 ## TL;DR Version
 
-It was a PITA journey with lots of pitfalls. I ended up writing a lot more code than I expected. But I finally have a
+It was a long journey with lots of pitfalls. Wrote a lot more code than expected. But I finally have a
 reliably working sensor.
 
 ## Long Version
@@ -150,8 +150,8 @@ But that led to some crash-reload-crash loops. (At one point, I completely fille
 Recovering from that was an adventure.) That led to another stopgap where I would limit the number of system resets.
 After crashing and reloading a set number of times, I would give up and let the system stay down.<br>
 Eventually it became clear the problem was related to HTTPS GETs and POSTs. They seemed to cause a mem leak. After 6 or
-so invocations of `requests.get()` or `requests.post()`, I would get some kind od memory exception. That gave me what
-I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025) in
+so invocations of `requests.get()` or `requests.post()`, I would get some kind of memory exception. That gave me the
+diagnostics I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025) in
 `micropython-lib` and waited.
 
 11. ### Back to embedded C<br>
@@ -179,5 +179,46 @@ memory leaks should go away. Although the solution is not very 'pythonic' (Pytho
 collection), I was grateful he got back to me. Time to give this new fix a try.<br>
 And it made a big difference. The memory problems disappeared. My Micropython code is now working pretty well. So far,
 the mailbox code has been running multiple days without incident. I **think** I finally have the solution I set out to
-create. It was a long road, and fun (when it wasn't driving me nuts). 
+create. It was a long, fun road - when it wasn't driving me nuts.
 
+## Pictures
+
+1. ### Corner of the garage were the cable joins the edge of the driveway<br>
+
+![](.README_images/de4dfd91.png)
+
+2. ### Cable secured to the garage entrance edge with the construction adhesive<br>
+
+![](.README_images/406fff0c.png)
+
+3. ### Example of how the cable is secured to the driveway's edge using landscape staples<br>
+
+![](.README_images/886d5c11.png)
+
+4. ### Cable going up the support pole to the mailbox (it required 3 holes to be drilled)<br>
+
+![](.README_images/b1ac0302.png)
+
+5. ### Box containing the Pico W
+
+![](.README_images/fc90b915.png)
+
+6. ### Underside of the Pico box. Note the magnets used to secure it under the mailbox.
+
+![](.README_images/0f23a73e.png)
+
+7. ### Contents of the Pico box. Note the Pico is not soldered to a board, but seated in a breakout board. Makes swapping the Pico very easy.<br>
+
+![](.README_images/421630e3.png)
+
+8. ### Reed switch inside the mailbox.<br>
+
+![](.README_images/406b29af.png)
+
+9. ### Closeup of the stronger magnets used to close the switch<br>
+
+![](.README_images/55657797.png)
+
+10. ### The Pico box installed underneath mailbox.
+
+![](.README_images/06a3173f.png)
