@@ -218,13 +218,12 @@ and this one:
 ```python
 resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=json.dumps(traceback_data), headers=REQUEST_HEADER)
 ```
-
 They are what generate SMS text messages to someone's cell phone.
 
 In my case, they are URLs for a REST definition on an API Gateway on AWS. The API Gateway passes the POST information
-to an AWS Lambda function. The Lambda function invokes a call to a Simple Notification Service (SNS) topic. That
-topic is associated with a particular phone number. A message from the Lambda function is sent to that phone number.
-Got it? :)
+to an AWS Lambda function (see the `aws-lambda/mailbox-sensor-lambda.py` for the source). The Lambda function invokes
+a call to a Simple Notification Service (SNS) topic. That topic is associated with a particular phone number. A message
+from the Lambda function is sent to that phone number. Got it? :)
 
 Yeah, its confusing. It is much simpler to set up than it sounds, but the learning curve is pretty steep to get to that
 point. Don't give up though. There is a good substitution for it. Have a look at this website:<br><br>
