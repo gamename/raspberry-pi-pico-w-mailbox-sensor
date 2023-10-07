@@ -6,8 +6,9 @@
     - [The Journey - Long Version](#the-journey---long-version)
     - [The REST API for Text Messaging](#the-rest-api-for-text-messaging)
     - [Pictures](#pictures)
+    - [Wiring Diagram](#wiring-diagram)
     - [Parts List](#parts-list)
- 
+
 ## The Idea
 
 Like many omg-will-this-ever-end projects, it started with a simple idea: why not install a sensor on my (snail)
@@ -273,6 +274,10 @@ better option for most people.
 10. ### The Pico box installed underneath mailbox.
 
 ![](.README_images/06a3173f.png)
+
+## Wiring Diagram
+
+![](.README_images/7218a1e1.png)
 
 ## Parts List
 
