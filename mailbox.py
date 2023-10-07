@@ -30,7 +30,6 @@ Description:
     exponent-based timer to create user messages at increasingly longer intervals.
 
 """
-import gc
 import json
 import math
 import time
@@ -66,13 +65,33 @@ def exponent_generator(base=3, start=4):
 
 class MailBoxStateMachine:
     """
-    This is a state machine to keep up with the status of the door on a USPS mailbox
+    This is a state machine to keep up with the status of the door on a physical mailbox
     """
     REQUEST_HEADER = {'content-type': 'application/json'}
 
     def __init__(self, request_url, state='closed', quick_door_close_timer=60, minimum_memory=32000,
                  backoff_timer_base=3, backoff_timer_range_start=4, state_file='mailbox_state.json',
                  debug=False):
+        """
+        Initialization
+
+        :param request_url: A REST URL to which we sent out state information.  This resolves to a SMS text message.
+        :type request_url: str
+        :param state: The initial state of the mailbox. Defaults to 'closed'
+        :type state: string
+        :param quick_door_close_timer: Determine if the door was simply opened and closed quickly
+        :type quick_door_close_timer: int
+        :param minimum_memory: raise an exception if we run lower than this amount of memory
+        :type minimum_memory: int
+        :param backoff_timer_base: The base value we use for creating exponents
+        :type backoff_timer_base: int
+        :param backoff_timer_range_start: The beginning exponent value for the base
+        :type backoff_timer_range_start: int
+        :param state_file: A file to keep state info for error-recovery. Work-In-Progress
+        :type state_file: str
+        :param debug: Enable debug
+        :type debug: bool
+        """
         self.state_file = state_file
         self.request_url = request_url
         self.state = state
@@ -232,10 +251,7 @@ class MailBoxStateMachine:
 
     def send_request(self, state):
         """
-        There is a mem leak bug in 'urequests'. Clean up memory as much as possible on
-        every request call
-
-        https://github.com/micropython/micropython-lib/issues/741
+        This is a simple wrapper for POSTing to a REST API.
 
         :param state: The state of the mailbox
         :type state: string
@@ -248,10 +264,6 @@ class MailBoxStateMachine:
         except OSError:
             raise MailBoxNoMemory()
         except MemoryError:
-            raise MailBoxNoMemory()
-
-        gc.collect()
-        if gc.mem_free() < self.minium_memory:
             raise MailBoxNoMemory()
 
     def ajar_timer_expired(self):
