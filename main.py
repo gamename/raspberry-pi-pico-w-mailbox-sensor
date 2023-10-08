@@ -64,7 +64,7 @@ OTA_CHECK_TIMER = 28800  # seconds (8 hrs)
 OTA_UPDATE_GITHUB_REPOS = {
     "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py", "mailbox.py"],
     "gamename/micropython-over-the-air-utility": ["ota.py"],
-    "gamename/micropython-utilities": ["utils.py", "cleanup_logs.py"]
+    "gamename/micropython-gamename-utilities": ["utils.py", "cleanup_logs.py"]
 }
 
 #
