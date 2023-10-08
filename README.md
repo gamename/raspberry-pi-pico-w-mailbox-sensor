@@ -1,10 +1,9 @@
-# Table of Contents
-
 - [Table of Contents](#table-of-contents)
     - [The Idea](#the-idea)
     - [The Journey - TL;DR Version](#the-journey---tl;dr-version)
     - [The Journey - Long Version](#the-journey---long-version)
     - [The REST API for Text Messaging](#the-rest-api-for-text-messaging)
+    - [Lessons Learned](#lessons-learned)
     - [Pictures](#pictures)
     - [Wiring Diagram](#wiring-diagram)
     - [Parts List](#parts-list)
@@ -232,6 +231,13 @@ https://pushover.net/
 <br><br>For a small fee, you can send SMS text messages from there. They offer a REST API (with sample code). This is a
 better option for most people.
 
+## Lessons Learned
+
+One important lesson I learned was never solder your Pico W directly to the breadboard. Instead, always use a
+some kind of [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
+and mount the Pico on it.<br>
+That way, you can always easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
+multiple times.
 
 ## Pictures
 
