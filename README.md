@@ -172,7 +172,8 @@ But I stuck with it and continued debugging. Lots of logging and error-recovery 
 the tracebacks to files. Forcing a restart of the Pico turned out to be a pretty good stopgap for the memory issues.
 But that led to some crash-reload-crash loops. (At one point, I completely filled up the filesystem with traceback logs.
 Recovering from that was an adventure.) That led to another stopgap where I would limit the number of system resets.
-After crashing and reloading a set number of times, I would give up and let the system stay down.<br>
+After crashing and reloading a set number of times, I would give up, send myself a text alert, and let the system stay
+down.<br>
 Eventually it became clear the problem was related to HTTPS GETs and POSTs. They seemed to cause a mem leak. After 6 or
 so invocations of `requests.get()` or `requests.post()`, I would get some kind of memory exception. That gave me the
 diagnostics I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025) in
