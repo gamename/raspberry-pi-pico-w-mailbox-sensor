@@ -26,11 +26,11 @@ on similar projects.
 
 1. ### Original Design <br>
 
-What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor ([another project](https://github.com/gamename/raspberry-pi-pico-w-garage-door-sensor))
-and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi to my mailbox (about 50 feet). The
-need for a 2-conductor cable was because I expected to house a reed switch in the mailbox. I ordered the cable and it
-arrived a couple days later. I was careful to order outdoor-rated cable since it would be running down my driveway
-to the mailbox.
+What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor 
+([another project](https://github.com/gamename/raspberry-pi-pico-w-garage-door-sensor)) and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi to my 
+mailbox (about 50 feet). The need for a 2-conductor cable was because I expected to house a reed switch in the mailbox. 
+I ordered the cable and it arrived a couple days later. I was careful to order outdoor-rated cable since it would be 
+running down my driveway to the mailbox.
 
 2. ### Of Cables, Staples, and Glue<br>
 
@@ -82,11 +82,12 @@ opinions varied. Much time was spent chasing this down. It appeared my design wa
 I retraced my steps, confirmed my wiring, and poured over lots of search results. I even revisited the vendor's reed
 switch documentation. That turned out to be very instructive. Here is what I found in their product writeup:<br>
 ![](.README_images/5d13c214.png)<br>
-...which is exactly the [opposite](https://en.wikipedia.org/wiki/Reed_switch) of the Normally Open (NO)/Normally Closed
-(NC) standard.<br><br>
+...which is exactly the [opposite](https://en.wikipedia.org/wiki/Reed_switch) of how Normally Open (NO)/Normally Closed (NC) switches operate.  In other 
+words, they built it wrong.<br><br>
 Here is how it is **supposed** to work:<br>
-_"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
-open when a magnetic field is applied. "_<br>
+>_"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
+>open when a magnetic field is applied. "_<br>
+
 So I moved my wiring to the "incorrect" connection on the switch and it began to work - sorta. I did get the expected
 behavior from the switch, but it was still intermittent. Sometimes when closing the mailbox door (and theoretically
 closing the circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using
@@ -104,18 +105,20 @@ training was 43 years ago in Air Force. It was time to shift gears on the projec
 Rather than continue to wrestle with cable length, resistors and/or capacitors, and potentially damaging my RPi, I
 decided on another approach. Instead of a 50' switch connection, I would abandon the RPi 4 and use a microcontroller
 (Pico W). That way I could colocate it and the reed switch on the mailbox itself. The cable length issues would go
-away and the existing cable could be used to conduct the 5 volts needed by the Pico. Much simpler design.<br>
+away and the existing cable could be used to conduct the 5 volts needed by the Pico. The Pico W would use Wi-FI
+to send its alerts and get updates (more on that later). A much simpler design.<br> 
 I installed the Pico in a small box, then connected the power and reed switch to it. The Pico box was then placed
 under the mailbox (see pics below). Everything was good to go in the hardware realm.
 
-6. ### Micropython<br>
+6. ### MicroPython<br>
 
-Pico doesn't use Python, it uses MicroPython, which is Almost The Same Thing. All I had to do was port my script. How
-hard could that be? Turns out it wasn't hard - but there are caveats. <br>
-In a sense, scripting on a microcontroller is monolithic. Things that are handled by the operating
-system on the RPi (or any other OS for that matter) have to be handled by your Micropython script. You are, for
-example, responsible for setting up and maintaining the Wi-Fi connection. Therefore, the scripter has to be aware of
-various things not normally associated with Python (like setting the system time with NTP).
+Pico doesn't use Python, it uses MicroPython, which is Almost The Same. All I had to do was port my script. How
+hard could that be?<br>
+Turns out it wasn't hard - but there are caveats. In a sense, scripting on a microcontroller is monolithic. Things 
+that are handled by the operating system on the RPi (or any other OS for that matter) have to be handled by your 
+MicroPython script. You are, for example, responsible for setting up and maintaining the Wi-Fi connection. Therefore, 
+the scripter has to be aware of various things not normally associated with Python (like setting the system time with 
+NTP).
 
 
 7. ### Wi-Fi Woes<br>
@@ -135,21 +138,22 @@ updating facility was needed.<br>
 Research on the subject revealed that Over-The-Air (OTA) updates were possible, but not yet standardized on the Pico.
 The best solutions I found were git-based. That is, when a user committed something to git, the OTA process would
 detect the changes and pull a copy onto the Pico. I really liked that design. I found some interesting YouTube videos
-on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) and [here](https://www.youtube.com/watch?v=UX87SrdqIoc)).<br>
-They were good solutions. Both were clever and interesting. But they were not what I wanted. The sticking point for me
-was that in both cases the expectation was that I would have to include an OTA module in all my repos. In other words,
-identical code would have to be copied to each Pico project. I didn't like that idea. It could turn into a maintenance
-problem. Any changes to the OTA code would mean copying it and committing it in multiple places. I foresaw headaches
-since I have several Pico projects.<br>
+on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) and 
+[here](https://www.youtube.com/watch?v=UX87SrdqIoc)).<br>
+They were good solutions. Clever and interesting. But they were not what I wanted. The sticking point for me
+was that both expected to include an OTA module in all my repos. In other words, identical code would have to be 
+copied to each Pico project. I didn't like that idea. It would turn into a maintenance problem. Any changes to the 
+OTA code would mean copying it and committing it in multiple places. I foresaw headaches since I have several Pico 
+projects.<br>
 Long story short: I decided to write my own OTA module. Yes, it was a major digression. But it would avoid much pain
 in the long run.
 
-9. ### Fun with Micropython Classes<br>
+9. ### Fun with MicroPython Classes<br>
 
 Leveraging Tim McAleer's [work](https://github.com/kevinmcaleer/ota), I created my
 own [OTA project](https://github.com/gamename/micropython-over-the-air-utility).<br>
 It was time-consuming, but fun. Design, coding and testing took a few days. I managed to circumvent the multiple copies
-issue by adding support for multiple repos. Have a look at the project if you're interested.  <br>
+issue by adding support for multiple repos. <br>
 
 10. ### Cognitive Complexity<br>
 
@@ -182,11 +186,11 @@ diagnostics I needed. I opened an [issue](https://github.com/micropython/micropy
 
 I didn't know how long it could be before someone would respond. My experience has not always been a good with open
 source projects. I assumed the worst and began researching options.<br>
-In spite of what I was seeing on Micropython, I like the Pico. I wanted to stay with that platform. Maybe, I thought,
+In spite of what I was seeing on MicroPython, I like the Pico. I wanted to stay with that platform. Maybe, I thought,
 writing my app in C would be a more solid solution? There was, I knew, OTA support on FreeRTOS with Amazon Web Services
 (AWS). Its been a while, but I've written in C and have lots of AWS experience. Why not give it a try?<br>
 With some hesitation, I ventured down this new path. The setup for FreeRTOS was challenging, but I managed to get sample
-apps (like `blink.c`) to work without much trouble. I coded a C app that was a close equivalent of the Micropython
+apps (like `blink.c`) to work without much trouble. I coded a C app that was a close equivalent of the MicroPython
 version and began testing.<br>
 Debugging was where it got interesting. Debugging an embedded app on a Pico is non-trivial. You have to load libraries
 and toolchains. Then you need to assemble (or buy)
@@ -201,7 +205,7 @@ requirements when I heard back from the micropython-lib folks... <br>
 ["jimmo"](https://github.com/jimmo) on GitHub informed me that I needed to make a simple change to my code and the
 memory leaks should go away. Although the solution is not very 'pythonic' (Python should be doing its own garbage
 collection), I was grateful he got back to me. Time to give this new fix a try.<br>
-And it made a big difference. The memory problems disappeared. My Micropython code is now working pretty well. So far,
+And it made a big difference. The memory problems disappeared. My MicroPython code is now working pretty well. So far,
 the mailbox code has been running multiple days without incident. I **think** I finally have the solution I set out to
 create. It was a long, fun road. Well, fun when it wasn't driving me nuts.
 
@@ -233,9 +237,8 @@ better option for most people.
 
 ## Lessons Learned
 
-One important lesson I learned was never solder your Pico W directly to the breadboard. Instead, always use a
-some kind of [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
-and mount the Pico on it.<br>
+One important lesson I learned was never solder your Pico W directly to the circuit board. Instead, always use a
+some kind of [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) and mount the Pico on it.<br>
 That way, you can always easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
 multiple times.
 
