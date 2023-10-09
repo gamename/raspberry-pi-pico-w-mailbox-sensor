@@ -88,7 +88,7 @@ Here is how it is **supposed** to work:<br>
 >_"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
 >open when a magnetic field is applied. "_<br>
 
-So I moved my wiring to the "incorrect" connection on the switch and it began to work - sorta. I did get the expected
+So I moved my wiring to the "incorrect" connection on the switch, and it began to work - sorta. I did get the expected
 behavior from the switch, but it was still intermittent. Sometimes when closing the mailbox door (and theoretically
 closing the circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using
 a more powerful magnet to close the circuit (see pic below). I glued the new magnet to the mailbox door and saw clear
@@ -237,9 +237,11 @@ better option for most people.
 
 ## Lessons Learned
 
-One important lesson I learned was never solder your Pico W directly to the circuit board. Instead, always use a
-some kind of [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) and mount the Pico on it.<br>
-That way, you can always easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
+One important lesson I learned was never solder your Pico W directly to the circuit board. Instead, always use
+a [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) or
+[socket pins](https://www.amazon.com/ZYAMY-2-54mm-Female-Straight-Connector/dp/B0778F2MLW/ref=sr_1_25?crid=1WDDUKJ6YIAV0&keywords=circuit+board+socket+pins&qid=1696878702&sprefix=circuit+board+socket+pins%2Caps%2C102&sr=8-25)
+(I think that's what they're called) and plug the Pico into that.<br>
+That way, you can easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
 multiple times.
 
 ## Pictures
