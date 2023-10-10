@@ -207,7 +207,7 @@ create. It was a long, fun road. Well, fun when it wasn't driving me nuts.
 
 ## The REST API for Text Messaging
 
-In the code, there are requests like this one:
+I use Amazon Web Services (AWS) for my text alerts. In the code, there are requests like this one:
 
 ```python
 resp = requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
