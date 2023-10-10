@@ -15,22 +15,23 @@ mailbox to tell me when we get a delivery?
 
 ## The Journey - TL;DR Version
 
-It was a big effort with lots of pitfalls. Wrote a lot more code than expected - in multiple languages on multiple
-platforms. But, I finally have a reliable mailbox sensor.
+It was a big effort with lots of pitfalls. Wrote a lot more code than expected—in multiple languages on multiple
+platforms. But I finally have a reliable mailbox sensor.
 
 ## The Journey - Long Version
 
-What follows is an account of my efforts to create what I thought would be fairly trivial. Spoiler alert: It wasn't.  
+What follows is an account of what I expected to be a trivial effort.<br><br>
+Spoiler alert: It wasn't.<br><br>
 Anyway, I thought writing everything down would be cathartic for me and maybe instructive for others who are working
 on similar projects.
 
 1. ### Original Design <br>
 
-What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor ([another project](https://github.com/gamename/raspberry-pi-pico-w-garage-door-sensor))
-and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi to my mailbox (about 50 feet). The
-need for a 2-conductor cable was because I expected to house a reed switch in the mailbox. I ordered the cable and it
-arrived a couple days later. I was careful to order outdoor-rated cable since it would be running down my driveway
-to the mailbox.
+What I had in mind initially was to use a single RPi 4 in my garage to be both my garage door sensor 
+([another project](https://github.com/gamename/raspberry-pi-pico-w-garage-door-sensor)) and mailbox sensor. The plan was to run a 2-conductor cable from said garage RPi to my 
+mailbox (about 50 feet). The need for a 2-conductor cable was because I expected to house a reed switch in the mailbox.
+I ordered the cable, and it arrived a couple of days later. I was careful to order outdoor-rated cable since it would be
+running down my driveway to the mailbox.
 
 2. ### Of Cables, Staples, and Glue<br>
 
@@ -46,10 +47,10 @@ below).
 
 3. ### Raspberry Pi 4<br>
 
-At this point, I installed the RPi 4. I had done this many times before, so it was easy to get it up and running in
-"headless" mode. Python also wasn't a problem; I've been programming in it for many years. I used GPIO pin #23 and
-GPIO pin #1 to connect to the reed switch. The mailbox had the switch installed by this time too. Brimming with
-confidence, I fired up a simple script:
+Then, I installed the RPi 4. I had done this many times before. Soon I had it up and running in "headless" mode.
+Python also wasn't a problem; I've been programming in it for many years. I used GPIO pin #23 and GPIO pin #1 to
+connect to the reed switch. The mailbox had the switch installed by this time too. Brimming with confidence,
+I fired up a simple script:
 
 ```python
 import RPi.GPIO as GPIO
@@ -69,91 +70,98 @@ while True:
     time.sleep(1)
 ```
 
-...and nothing worked. The switch only worked intermittently. Sometimes the RPi sensed the switch, sometimes not. At
+...And nothing worked. The switch only worked intermittently. Sometimes the RPi sensed the switch, sometimes not. At
 other times it gave the wrong answer based on switch state. After much research, I created
 this [thread](https://forums.raspberrypi.com/viewtopic.php?t=356246) on the Raspberry Pi forum.
 
 4. ### Fun with reed(ish) switches
 
-By now it was obsessing about the cable length and how it could be the issue. It led to much googlation and discovering
-the possibility I could damage the RPi because I did not have a resistor on the connection - or maybe a capacitor -
-opinions varied. Much time was spent chasing this down. It appeared my design was workable, but not optimum.<br>
+By now it was obsessing about the cable length and how it could be the issue. It led to much "googlation" which
+uncovered the possibility my wiring scheme could damage the RPi. It seems I needed a resistor on the connection (or
+maybe a capacitor, opinions varied). Much time was spent chasing this down. It appeared my design was workable, but
+not optimum. It looked like some electrical tinkering would be needed in any case.<br>
 
 I retraced my steps, confirmed my wiring, and poured over lots of search results. I even revisited the vendor's reed
-switch documentation. That turned out to be very instructive. Here is what I found in their product writeup:<br>
+switch documentation. <br><br>
+That turned out to be very instructive. Here is what I found in their product doc:<br>
 ![](.README_images/5d13c214.png)<br>
-...which is exactly the [opposite](https://en.wikipedia.org/wiki/Reed_switch) of the Normally Open (NO)/Normally Closed
-(NC) standard.<br><br>
+...which is exactly the [opposite](https://en.wikipedia.org/wiki/Reed_switch) of how Normally Open (NO)/Normally Closed (NC) switches operate.  In other 
+words, they built it wrong.<br><br>
 Here is how it is **supposed** to work:<br>
-_"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
-open when a magnetic field is applied. "_<br>
-So I moved my wiring to the "incorrect" connection on the switch and it began to work - sorta. I did get the expected
-behavior from the switch, but it was still intermittent. Sometimes when closing the mailbox door (and theoretically
-closing the circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using
+>_"The contacts are usually normally open, closing when a magnetic field is present, or they may be normally closed and
+>open when a magnetic field is applied. "_<br>
+
+So I moved my wiring to the "incorrect" connection on the switch, and it began to work—sorta. I did get the expected
+behavior from the switch, but it was intermittent. Sometimes when closing the mailbox door (and theoretically closing
+the circuit) nothing would happen. The Python script did not sense any change. That convinced me to try using
 a more powerful magnet to close the circuit (see pic below). I glued the new magnet to the mailbox door and saw clear
 improvement.<br>
 Now the script was behaving as expected most of the time and the magnets properly closed the circuit when the door was
 closed. Opening the door was reported correctly too.<br>
 But there was one remaining issue. There were still intermittent "open" and "close" states being reported
 when nothing was being touched. Frustrating.
-I'm sure that if I was a EE I could have figured out how to make this work. But I'm not a EE and Basic Electronics
-training was 43 years ago in Air Force. It was time to shift gears on the project.
+I'm sure that if I was an electrical engineer (EE) I could have figured out how to make this configuration work. But
+I'm not an EE and Basic Electronics training was 43 years ago in the Air Force. It was time to shift gears on the
+project.
 
 5. ### Enter Pico W<br>
 
-Rather than continue to wrestle with cable length, resistors and/or capacitors, and potentially damaging my RPi, I
-decided on another approach. Instead of a 50' switch connection, I would abandon the RPi 4 and use a microcontroller
-(Pico W). That way I could colocate it and the reed switch on the mailbox itself. The cable length issues would go
-away and the existing cable could be used to conduct the 5 volts needed by the Pico. Much simpler design.<br>
-I installed the Pico in a small box, then connected the power and reed switch to it. The Pico box was then placed
+Rather than continue to wrestle with cable length, resistors/capacitors, and potentially damaging my RPi, I
+decided on another approach. Instead of a 50' switch connection, I would abandon the RPi 4 and use a Pico W
+microcontroller. That way I could colocate it and the reed switch in the mailbox itself. The cable length issues would
+go away, and the existing cable could be used to conduct the five volts needed by the Pico. The Pico would use Wi-FI
+to send its alerts and get updates (more on that later). A much simpler design.<br>
+I installed the Pico in a small project box, then connected power and reed switch. The Pico box was then placed
 under the mailbox (see pics below). Everything was good to go in the hardware realm.
 
-6. ### Micropython<br>
+6. ### MicroPython<br>
 
-Pico doesn't use Python, it uses MicroPython, which is Almost The Same Thing. All I had to do was port my script. How
-hard could that be? Turns out it wasn't hard - but there are caveats. <br>
-In a sense, scripting on a microcontroller is monolithic. Things that are handled by the operating
-system on the RPi (or any other OS for that matter) have to be handled by your Micropython script. You are, for
-example, responsible for setting up and maintaining the Wi-Fi connection. Therefore, the scripter has to be aware of
-various things not normally associated with Python (like setting the system time with NTP).
+But Pico doesn't use Python; it uses MicroPython, which is Almost The Same. All I had to do was port my script. How
+hard could that be?<br>
+It wasn't hard—but there are caveats. In a sense, scripting on a microcontroller is monolithic. Things
+that are handled by the operating system on the RPi (or any other OS for that matter) have to be handled by your 
+MicroPython script. You are, for example, responsible for setting up and maintaining the Wi-Fi connection. Therefore, 
+the scripter has to be aware of various things not normally associated with Python (like setting the system time with 
+NTP).
 
 
 7. ### Wi-Fi Woes<br>
 Coding the Wi-Fi function was simple enough, but the connections were unstable. Had to recode it a few times before
-there was reasonably reliable connectivity. However, the connection would still inexplicably drop from time to time. It
-was then I realized the Pico W quite far from my router. The signal strength was probably very weak out at the mailbox.
-After installing a Wi-Fi extender, the intermittent drops went away. There were still other little quirks though. For
-example, hostnames can only be a max of 15 characters. After finding that out, my host naming started working. At last,
-we were good to go on the Wi-Fi side.
+there was reasonably reliable connectivity. The connection would still inexplicably drop from time to time, however. It
+was then I realized the Pico W was quite far from my router. I tested my hunch. The signal strength proved to be weak
+at the mailbox. A Wi-Fi extender was needed. After installing that, the intermittent drops went away.<br><br>
+There were still other little quirks though. For example, hostnames can only be a max of 15 characters. After finding
+that out, my host naming started working. At last, we were good to go on the Wi-Fi side.
 
 8. ### OTA? What OTA?<br>
 
-Up to this point, the Pico was USB attached to my laptop most of the time. I would code changes, download them, and
-do testing. When satisfied with the results, I would then physically carry the unit to my mailbox and install it.
+Up to this point, the Pico was attached via USB to my laptop most of the time. I would code changes, download them, and
+start testing. When satisfied with the results, I would then physically carry the unit to my mailbox and install it.
 This got tedious fast. All of this coding-testing-recoding effort highlighted the fact that some kind of remote
 updating facility was needed.<br>
 Research on the subject revealed that Over-The-Air (OTA) updates were possible, but not yet standardized on the Pico.
 The best solutions I found were git-based. That is, when a user committed something to git, the OTA process would
 detect the changes and pull a copy onto the Pico. I really liked that design. I found some interesting YouTube videos
-on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) and [here](https://www.youtube.com/watch?v=UX87SrdqIoc)).<br>
-They were good solutions. Both were clever and interesting. But they were not what I wanted. The sticking point for me
-was that in both cases the expectation was that I would have to include an OTA module in all my repos. In other words,
-identical code would have to be copied to each Pico project. I didn't like that idea. It could turn into a maintenance
-problem. Any changes to the OTA code would mean copying it and committing it in multiple places. I foresaw headaches
-since I have several Pico projects.<br>
+on the subject (like [here](https://www.youtube.com/watch?v=f1widOJYQDc&t=162s) and 
+[here](https://www.youtube.com/watch?v=UX87SrdqIoc)).<br>
+They were good solutions; clever and interesting. But they were not what I wanted. The sticking point was the
+expectation to include an OTA module in all my repos. In other words, identical code would have to be copied to each
+Pico project. I didn't like that idea. It is a maintenance hassle. Any changes to the OTA code would
+mean copying and committing it in multiple places. I have several Pico projects, and could foresee headaches with that
+approach.<br><br>
 Long story short: I decided to write my own OTA module. Yes, it was a major digression. But it would avoid much pain
 in the long run.
 
-9. ### Fun with Micropython Classes<br>
+9. ### Fun with MicroPython Classes<br>
 
 Leveraging Tim McAleer's [work](https://github.com/kevinmcaleer/ota), I created my
 own [OTA project](https://github.com/gamename/micropython-over-the-air-utility).<br>
-It was time-consuming, but fun. Design, coding and testing took a few days. I managed to circumvent the multiple copies
-issue by adding support for multiple repos. Have a look at the project if you're interested.  <br>
+It was time-consuming, but I had fun building it. Design, coding and testing took a few days. I managed to circumvent
+the multiple copies issue by adding support for multiple repos. <br>
 
 10. ### Cognitive Complexity<br>
 
-Meanwhile, by mailbox code was turning into spaghetti. The linter I used, SonarLint, started complaining about
+Meanwhile, my mailbox code was turning into spaghetti. The linter I used, SonarLint, started complaining about
 "Cognitive Complexity" (i.e. maintainability) issues. I agreed. <br>
 What started out as a simple effort had turned into a substantial collection of flags and recursive if-elsif-else
 (il)logic. It was becoming less and less comprehensible. <br>
@@ -164,29 +172,29 @@ with the OTA object. Much better.
 
 11. ### Mem Leaks R Us<br>
 
-Then things went nuts. I was getting crashes all over the place. All of them were related to memory. At
+Then things went haywire. I was getting crashes all over the place. All of them were related to memory. At
 first, I thought the issue was the Pico simply didn't have enough memory to support the new mailbox/OTA objects. Great,
 I thought, the effort to write those classes was wasted.<br>
 But I stuck with it and continued debugging. Lots of logging and error-recovery code got written. I began logging all
-the tracebacks to files. Forcing a restart of the Pico turned out to be a pretty good stopgap for the memory issues.
-But that led to some crash-reload-crash loops. (At one point, I completely filled up the filesystem with traceback logs.
-Recovering from that was an adventure.) That led to another stopgap where I would limit the number of system resets.
-After crashing and reloading a set number of times, I would give up, send myself a text alert, and let the system stay
-down.<br>
-Eventually it became clear the problem was related to HTTPS GETs and POSTs. They seemed to cause a mem leak. After 6 or
-so invocations of `requests.get()` or `requests.post()`, I would get some kind of memory exception. That gave me the
-diagnostics I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025) in
-`micropython-lib` and waited.
+the tracebacks to files. <br>
+A pretty good stopgap was forcing a Pico restart when detecting memory issues. But that led to some crash-reload-crash
+loops. (At one point, I filled up the filesystem with traceback logs. Recovering from that was an adventure.) That led
+to another stopgap where I would limit the number of system resets. After crashing and reloading a set number of times,
+I would give up, send myself a text alert, and let the system stay down.<br>
+Eventually it became clear the problem was related to HTTPS GETs and POSTs. They seemed to cause a mem leak. After six
+or so invocations of `requests.get()` or `requests.post()`, I would get some kind of memory exception. That gave me the
+diagnostics I needed. I opened an [issue](https://github.com/micropython/micropython-lib/issues/741#issue-1920297025)
+in `micropython-lib` and waited.
 
 12. ### Back to Embedded C<br>
 
-I didn't know how long it could be before someone would respond. My experience has not always been a good with open
-source projects. I assumed the worst and began researching options.<br>
-In spite of what I was seeing on Micropython, I like the Pico. I wanted to stay with that platform. Maybe, I thought,
+I didn't know how long it could be before someone would respond. My experience has not always been a good with
+open-source projects. I assumed the worst and began researching options.<br>
+In spite of what I was seeing on MicroPython, I like the Pico. I wanted to stay with that platform. Maybe, I thought,
 writing my app in C would be a more solid solution? There was, I knew, OTA support on FreeRTOS with Amazon Web Services
-(AWS). Its been a while, but I've written in C and have lots of AWS experience. Why not give it a try?<br>
+(AWS). It's been a while, but I've written C and have lots of AWS experience. Why not give it a try?<br>
 With some hesitation, I ventured down this new path. The setup for FreeRTOS was challenging, but I managed to get sample
-apps (like `blink.c`) to work without much trouble. I coded a C app that was a close equivalent of the Micropython
+apps (like `blink.c`) to work without much trouble. I coded a C app that was a vague equivalent of the MicroPython
 version and began testing.<br>
 Debugging was where it got interesting. Debugging an embedded app on a Pico is non-trivial. You have to load libraries
 and toolchains. Then you need to assemble (or buy)
@@ -201,9 +209,9 @@ requirements when I heard back from the micropython-lib folks... <br>
 ["jimmo"](https://github.com/jimmo) on GitHub informed me that I needed to make a simple change to my code and the
 memory leaks should go away. Although the solution is not very 'pythonic' (Python should be doing its own garbage
 collection), I was grateful he got back to me. Time to give this new fix a try.<br>
-And it made a big difference. The memory problems disappeared. My Micropython code is now working pretty well. So far,
+And it made a big difference. The memory problems disappeared. My MicroPython code is now working pretty well. So far,
 the mailbox code has been running multiple days without incident. I **think** I finally have the solution I set out to
-create. It was a long, fun road. Well, fun when it wasn't driving me nuts.
+create. It was a long, fun road (well, fun when it wasn't driving me crazy).
 
 ## The REST API for Text Messaging
 
@@ -225,7 +233,7 @@ to an AWS Lambda function (see `aws-lambda/mailbox-sensor-lambda.py` in this rep
 a call to a Simple Notification Service (SNS) topic. That topic is associated with a particular phone number. A message
 from the Lambda function is sent to that phone number. Got it? :)
 
-Yeah, its confusing. It is much simpler to set up than it sounds, but the learning curve is pretty steep to get to that
+Yeah, it's confusing. It is much simpler to set up than it sounds, but the learning curve is pretty steep to get to that
 point. Don't give up though. There is a good substitution for it. Have a look at this website:<br><br>
 https://pushover.net/
 <br><br>For a small fee, you can send SMS text messages from there. They offer a REST API (with sample code). This is a
@@ -233,10 +241,11 @@ better option for most people.
 
 ## Lessons Learned
 
-One important lesson I learned was never solder your Pico W directly to the breadboard. Instead, always use a
-some kind of [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1)
-and mount the Pico on it.<br>
-That way, you can always easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
+One important lesson I learned was never solder your Pico W directly to the circuit board. Instead, always use
+a [breakout board](https://www.amazon.com/gp/product/B0BGHQXSRR/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&th=1) or
+[socket pins](https://www.amazon.com/ZYAMY-2-54mm-Female-Straight-Connector/dp/B0778F2MLW/ref=sr_1_25?crid=1WDDUKJ6YIAV0&keywords=circuit+board+socket+pins&qid=1696878702&sprefix=circuit+board+socket+pins%2Caps%2C102&sr=8-25)
+(I think that's what they're called) and plug the Pico into that.<br>
+That way, you can easily swap in a new Pico if you have temporarily bricked the existing one. This has saved me
 multiple times.
 
 ## Pictures
