@@ -107,7 +107,7 @@ def main():
     utils.tprint("MAIN: Instantiate the mailbox obj")
     mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
 
-    utils.tprint("MAIN: Start event loop. Monitor reed switch for state changes.")
+    utils.tprint("MAIN: Start event loop monitoring reed switch.")
     while True:
         mailbox_door_state = bool(reed_switch.value())
 
