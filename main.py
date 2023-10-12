@@ -83,9 +83,6 @@ def main():
         time.sleep(0.5)
         reset()
 
-    utils.tprint("MAIN: Set the OTA update timer")
-    ota_timer = time.time()
-    #
     utils.tprint("MAIN: Handle any old traceback logs")
     utils.purge_old_log_files()
     #
@@ -98,7 +95,8 @@ def main():
         time.sleep(1)
         reset()
     else:
-        utils.tprint("MAIN: No OTA found.")
+        utils.tprint("MAIN: No OTA updates needed.  Setting countdown timer for next check.")
+        ota_timer = time.time()
 
     utils.tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -113,7 +111,7 @@ def main():
         mailbox.event_handler(mailbox_door_state)
 
         if utils.ota_update_interval_exceeded(ota_timer) and mailbox_door_state == MAILBOX_DOOR_CLOSED:
-            utils.tprint("MAIN: Checking for OTA updates.")
+            utils.tprint("MAIN: OTA timer expired. Checking for updates.")
             if ota_updater.updated():
                 utils.tprint("MAIN: Found OTA updates. Resetting system.")
                 time.sleep(0.5)
@@ -126,7 +124,7 @@ def main():
             utils.tprint("MAIN: Restart network connection")
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-        # avoid overwhelming the CPU
+        # Periodic pause to avoid overwhelming CPU
         time.sleep(0.1)
 
 
