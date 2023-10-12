@@ -1,6 +1,6 @@
 """
-This is a Raspberry Pi Pico W app to monitor a physical USPS mailbox.  The user is informed of mailbox status
-changes by a series text messages.
+This is a Raspberry Pi Pico W app to monitor a physical residential mailbox.  The user is informed of mailbox status
+changes by a series of SMS text messages.
 
 Wiring:
   Pico W                     Reed Switch         Pico W
@@ -10,7 +10,7 @@ Wiring:
 Over-The-Air (OTA) Updates:
   The script will check for updates under 2 conditions:
   1. At initialization time
-  2. Every OTA_CHECK_TIMER seconds (see below)
+  2. Every OTA_CHECK_TIMER seconds *if* the state is MAILBOX_DOOR_CLOSED
 
 Exception handling:
   - The script will generate a traceback log on each unhandled exception
@@ -86,10 +86,10 @@ def main():
     utils.tprint("MAIN: Handle any old traceback logs")
     utils.purge_old_log_files()
     #
-    utils.tprint("MAIN: Set up OTA updates.")
+    utils.tprint("MAIN: Configure OTA updates.")
     ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
 
-    utils.tprint("MAIN: Run OTA update")
+    utils.tprint("MAIN: Check for OTA updates")
     if ota_updater.updated():
         utils.tprint("MAIN: OTA updates added. Resetting system.")
         time.sleep(1)
