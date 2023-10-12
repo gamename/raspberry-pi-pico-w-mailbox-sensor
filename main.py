@@ -125,7 +125,7 @@ def main():
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
         # avoid overwhelming the CPU
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
