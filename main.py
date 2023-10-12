@@ -100,7 +100,6 @@ def main():
     else:
         utils.tprint("MAIN: No OTA found.")
 
-
     utils.tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
