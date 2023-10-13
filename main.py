@@ -124,9 +124,6 @@ def main():
             utils.tprint("MAIN: Restart network connection")
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-        # Periodic pause to avoid overwhelming CPU
-        time.sleep(0.1)
-
 
 if __name__ == "__main__":
     try:
