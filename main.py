@@ -20,12 +20,10 @@ Exception handling:
 
 """
 import gc
-import time
 
 import network
-import ntptime
 import utils
-from machine import Pin, reset
+from machine import Pin
 from ota import OTAUpdater
 
 import secrets
@@ -73,13 +71,7 @@ def main():
     utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
     print("MAIN: Sync system time with NTP")
-    try:
-        ntptime.settime()
-        utils.debug_print("MAIN: System time set successfully.")
-    except Exception as e:
-        print(f"MAIN: Error setting system time: {e}")
-        time.sleep(0.5)
-        reset()
+    utils.time_sync()
 
     utils.tprint("MAIN: Handle any old traceback logs")
     utils.purge_old_log_files()
