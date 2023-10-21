@@ -70,7 +70,6 @@ def main():
     wlan = network.WLAN(network.STA_IF)
     utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
-    print("MAIN: Sync system time with NTP")
     utils.time_sync()
 
     utils.tprint("MAIN: Handle any old traceback logs")
