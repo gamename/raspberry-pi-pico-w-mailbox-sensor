@@ -112,7 +112,6 @@ def main():
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
-
 if __name__ == "__main__":
     try:
         main()
