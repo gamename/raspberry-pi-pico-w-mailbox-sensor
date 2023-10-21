@@ -20,12 +20,10 @@ Exception handling:
 
 """
 import gc
-import json
 import time
 
 import network
 import ntptime
-import urequests as requests
 import utils
 from machine import Pin, reset
 from ota import OTAUpdater
@@ -87,16 +85,12 @@ def main():
     utils.purge_old_log_files()
     #
     utils.tprint("MAIN: Configure OTA.")
-    ota_updater = OTAUpdater(secrets.GITHUB_USER, secrets.GITHUB_TOKEN, OTA_UPDATE_GITHUB_REPOS, debug=DEBUG)
-
-    utils.tprint("MAIN: Check for OTA updates")
-    if ota_updater.updated():
-        utils.tprint("MAIN: OTA updates added. Resetting system.")
-        time.sleep(1)
-        reset()
-    else:
-        utils.tprint("MAIN: No OTA updates needed.  Setting countdown timer for next check.")
-        ota_timer = time.time()
+    ota_updater = OTAUpdater(secrets.GITHUB_USER,
+                             secrets.GITHUB_TOKEN,
+                             OTA_UPDATE_GITHUB_REPOS,
+                             update_interval_minutes=1440,
+                             update_on_initialization=True,
+                             debug=DEBUG)
 
     utils.tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -110,37 +104,17 @@ def main():
 
         mailbox.event_handler(mailbox_door_state)
 
-        if utils.ota_update_interval_exceeded(ota_timer) and mailbox_door_state == MAILBOX_DOOR_CLOSED:
-            utils.tprint("MAIN: OTA timer expired. Checking for updates.")
-            if ota_updater.updated():
-                utils.tprint("MAIN: Found OTA updates. Resetting system.")
-                time.sleep(0.5)
-                reset()
-            else:
-                utils.tprint("MAIN: No OTA updates. Reset timer instead.")
-                ota_timer = time.time()
+        if mailbox_door_state == MAILBOX_DOOR_CLOSED:
+            ota_updater.updated()
 
         if not wlan.isconnected():
             utils.tprint("MAIN: Restart network connection")
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
 
 
+
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
-        utils.tprint("-C R A S H-")
-        tb_msg = utils.log_traceback(exc)
-        if utils.max_reset_attempts_exceeded():
-            # We cannot send every traceback since that would be a problem
-            # in a crash loop. But we can send the last traceback. It will
-            # probably be a good clue.
-            traceback_data = {
-                "machine": secrets.HOSTNAME,
-                "traceback": tb_msg
-            }
-            resp = requests.post(secrets.REST_CRASH_NOTIFY_URL, data=json.dumps(traceback_data), headers=REQUEST_HEADER)
-            resp.close()
-            utils.flash_led(3000, 3)  # slow flashing for about 2.5 hours
-        else:
-            reset()
+        utils.handle_exception(exc, secrets.HOSTNAME, secrets.REST_CRASH_NOTIFY_URL)
