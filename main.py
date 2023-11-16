@@ -7,11 +7,6 @@ Wiring:
   ------                     ---------------     ------
   3v3 (Physical pin #36) --> Normally Closed --> GPIO Pin #22 (Physical Pin #29)
 
-Over-The-Air (OTA) Updates:
-  The script will check for updates under 2 conditions:
-  1. At initialization time
-  2. Every OTA_CHECK_TIMER seconds *if* the state is MAILBOX_DOOR_CLOSED
-
 Exception handling:
   - The script will generate a traceback log on each unhandled exception
   - It will try to recover from any exceptions
@@ -45,14 +40,6 @@ CONTACT_PIN = 22  # GPIO pin #22, physical pin #29
 # A common request header for our POSTs
 REQUEST_HEADER = {'content-type': 'application/json'}
 
-#
-# Files we want to update over-the-air (OTA)
-OTA_UPDATE_GITHUB_REPOS = {
-    "gamename/raspberry-pi-pico-w-mailbox-sensor": ["boot.py", "main.py", "mailbox.py"],
-    "gamename/micropython-over-the-air-utility": ["ota.py"],
-    "gamename/micropython-gamename-utilities": ["utils.py", "cleanup_logs.py"]
-}
-
 
 def main():
     #
@@ -74,14 +61,6 @@ def main():
 
     utils.tprint("MAIN: Handle any old traceback logs")
     utils.purge_old_log_files()
-    #
-    utils.tprint("MAIN: Configure OTA.")
-    ota_updater = OTAUpdater(secrets.GITHUB_USER,
-                             secrets.GITHUB_TOKEN,
-                             OTA_UPDATE_GITHUB_REPOS,
-                             update_interval_minutes=1440,
-                             update_on_initialization=True,
-                             debug=DEBUG)
 
     utils.tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
@@ -94,9 +73,6 @@ def main():
         mailbox_door_state = bool(reed_switch.value())
 
         mailbox.event_handler(mailbox_door_state)
-
-        if mailbox_door_state == MAILBOX_DOOR_CLOSED:
-            ota_updater.updated()
 
         if not wlan.isconnected():
             utils.tprint("MAIN: Restart network connection")
