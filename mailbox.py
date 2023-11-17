@@ -37,16 +37,6 @@ import time
 import urequests as requests
 
 
-class MailBoxNoMemory(Exception):
-    """
-    Due to a known mem leak issue in 'urequests', flag when we run into it.
-    """
-
-    def __init__(self, message="Insufficient memory to continue"):
-        self.message = message
-        super().__init__(self.message)
-
-
 def exponent_generator(base=3, start=4):
     """
     Generate powers of a given base value. Start the range of exponents at
@@ -258,13 +248,8 @@ class MailBoxStateMachine:
         :return: Nothing
         :rtype: None
         """
-        try:
-            resp = requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
-            resp.close()
-        except OSError:
-            raise MailBoxNoMemory()
-        except MemoryError:
-            raise MailBoxNoMemory()
+        resp = requests.post(self.request_url + state, headers=self.REQUEST_HEADER)
+        resp.close()
 
     def ajar_timer_expired(self):
         """
