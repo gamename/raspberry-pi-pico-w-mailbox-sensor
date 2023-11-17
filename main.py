@@ -15,11 +15,11 @@ Exception handling:
 
 """
 import gc
+import time
 
 import network
 import utils
 from machine import Pin
-from ota import OTAUpdater
 
 import secrets
 from mailbox import MailBoxStateMachine
@@ -77,6 +77,8 @@ def main():
         if not wlan.isconnected():
             utils.tprint("MAIN: Restart network connection")
             utils.wifi_connect(wlan, secrets.SSID, secrets.PASSWORD)
+
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
