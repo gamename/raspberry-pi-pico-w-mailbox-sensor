@@ -15,14 +15,13 @@ Exception handling:
 
 """
 import gc
+import secrets
 import time
 
 import network
+import urequests as requests
 import utils
 from machine import Pin
-
-import secrets
-from mailbox import MailBoxStateMachine
 
 #
 # print debug messages
@@ -65,14 +64,15 @@ def main():
     utils.tprint("MAIN: Set up the reed switch.")
     reed_switch = Pin(CONTACT_PIN, Pin.IN, Pin.PULL_DOWN)
 
-    utils.tprint("MAIN: Instantiate the mailbox obj")
-    mailbox = MailBoxStateMachine(request_url=secrets.REST_API_URL, debug=DEBUG)
-
     utils.tprint("MAIN: Start event loop monitoring reed switch.")
     while True:
-        mailbox_door_state = bool(reed_switch.value())
+        mailbox_door_closed = bool(reed_switch.value())
 
-        mailbox.event_handler(mailbox_door_state)
+        if not mailbox_door_closed:
+            utils.tprint("MAIN: Mailbox opened")
+            resp = requests.post(secrets.REST_API_URL + 'open', headers=REQUEST_HEADER)
+            resp.close()
+            time.sleep(600)  # 10 min
 
         if not wlan.isconnected():
             utils.tprint("MAIN: Restart network connection")
